@@ -242,7 +242,7 @@
   }
   html {
     scroll-behavior: smooth;
-    background-color: #090c14;
+    background-color: var(--background);
   }
   body {
     @apply bg-background text-foreground font-sans;
@@ -305,4 +305,29 @@ body {
   .min-h-dvh {
     min-height: 100vh;
   }
+}
+
+/* Site-wide Light mode (default for new visitors). Dark mode = the original palette above. */
+:root.omechat.light {
+  color-scheme: light;
+  --background: oklch(0.99 0.003 260);
+  --foreground: oklch(0.2 0.02 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 260);
+  --primary: oklch(0.52 0.2 262);
+  --primary-foreground: oklch(0.99 0 0);
+  --flame: oklch(0.62 0.16 50);
+  --secondary: oklch(0.955 0.008 260);
+  --secondary-foreground: oklch(0.2 0.02 260);
+  --muted: oklch(0.96 0.006 260);
+  --muted-foreground: oklch(0.45 0.02 260);
+  --accent: oklch(0.955 0.008 260);
+  --accent-foreground: oklch(0.2 0.02 260);
+  --border: oklch(0.2 0.02 260 / 12%);
+  --input: oklch(0.2 0.02 260 / 16%);
+  --ring: oklch(0.52 0.2 262);
+  --online: oklch(0.6 0.17 150);
+  --stranger: oklch(0.6 0.2 22);
 }

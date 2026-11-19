@@ -26,11 +26,14 @@ export const metadata: Metadata = {
   },
 }
 
+// Runs before first paint: light is the default; a saved Dark choice is restored (no flash, survives refresh/close).
+const THEME_INIT = `(function(){var r=document.documentElement,d=false;try{d=localStorage.getItem('omechat-site-theme')==='dark'}catch(e){}r.classList.toggle('dark',d);r.classList.toggle('light',!d);r.style.colorScheme=d?'dark':'light';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#0f1116':'#ffffff')})()`
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  colorScheme: 'dark',
-  themeColor: '#0f1116',
+  colorScheme: 'light dark',
+  themeColor: '#ffffff',
 }
 
 export default function RootLayout({
@@ -41,9 +44,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      style={{ backgroundColor: '#090c14', colorScheme: 'dark' }}
+      suppressHydrationWarning
       className={`omechat ${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className="antialiased">
         <div className="relative z-10">{children}</div>
         {process.env.NODE_ENV === 'production' && <Analytics />}

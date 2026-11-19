@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { JsonLd } from '@/components/json-ld'
 import { HOME_FAQ, OMEGLE_FAQ, SITE_NAME, SITE_URL } from '@/lib/seo'
@@ -18,7 +19,25 @@ const steps = [
   'Tap Skip to meet someone new, or Report if a chat feels wrong.',
 ]
 
-// Long-form Omegle alternative section, placed at the very bottom of the home page for search engines and visitors.
+// One collapsible row, same look as the FAQ above it. Closed content stays in the page HTML, so search engines still read it.
+function Row({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <details className="group p-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold [&::-webkit-details-marker]:hidden">
+        {title}
+        <span
+          aria-hidden="true"
+          className="flex size-6 shrink-0 items-center justify-center rounded-full border text-lg leading-none text-muted-foreground transition-transform group-open:rotate-45"
+        >
+          +
+        </span>
+      </summary>
+      <div className="mt-2 text-sm text-muted-foreground">{children}</div>
+    </details>
+  )
+}
+
+// Long-form Omegle alternative section at the very bottom of the home page, shown as tap-to-open rows.
 export function OmegleAlternative() {
   const faq = [...OMEGLE_FAQ, ...HOME_FAQ]
   const faqLd = {
@@ -45,61 +64,64 @@ export function OmegleAlternative() {
         by text or video, skip to someone new in one tap, and start without signup. {SITE_NAME} is not connected to Omegle.
       </p>
 
-      <h3 className="mt-8 text-lg font-semibold">Why choose Omechat as your Omegle alternative</h3>
-      <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-        {reasons.map((r) => (
-          <li key={r.title} className="rounded-2xl border bg-card/60 p-4">
-            <p className="font-semibold">{r.title}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{r.text}</p>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-4 divide-y rounded-3xl border bg-card/60">
+        <Row title="Why choose Omechat as your Omegle alternative">
+          <ul className="mt-1 space-y-2">
+            {reasons.map((r) => (
+              <li key={r.title}>
+                <span className="font-semibold text-foreground">{r.title}.</span> {r.text}
+              </li>
+            ))}
+          </ul>
+        </Row>
 
-      <h3 className="mt-8 text-lg font-semibold">How to use this Omegle alternative</h3>
-      <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
-        {steps.map((s) => <li key={s}>{s}</li>)}
-      </ol>
+        <Row title="How to use this Omegle alternative">
+          <ol className="mt-1 list-decimal space-y-1.5 pl-5">
+            {steps.map((s) => <li key={s}>{s}</li>)}
+          </ol>
+        </Row>
 
-      <h3 className="mt-8 text-lg font-semibold">Omegle alternative with no signup</h3>
-      <p className="mt-3 text-muted-foreground">
-        Many sites like Omegle ask you to register before you can chat. On {SITE_NAME} you can continue anonymously and
-        start a random text chat or random video chat right away. If you want a name and photo on your profile, you can
-        optionally sign in with Google. It is your choice.
-      </p>
+        <Row title="Omegle alternative with no signup">
+          <p>
+            Many sites like Omegle ask you to register before you can chat. On {SITE_NAME} you can continue anonymously and
+            start a random text chat or random video chat right away. If you want a name and photo on your profile, you can
+            optionally sign in with Google. It is your choice.
+          </p>
+        </Row>
 
-      <h3 className="mt-8 text-lg font-semibold">Omegle alternative for India</h3>
-      <p className="mt-3 text-muted-foreground">
-        Looking for an Omegle alternative in India? Turn on the Same Country option and {SITE_NAME} matches you only with
-        people from India. You can talk in English, Hindi or Hinglish, on any phone, without installing an app.
-      </p>
+        <Row title="Omegle alternative for India">
+          <p>
+            Looking for an Omegle alternative in India? Turn on the Same Country option and {SITE_NAME} matches you only with
+            people from India. You can talk in English, Hindi or Hinglish, on any phone, without installing an app.
+          </p>
+        </Row>
 
-      <h3 className="mt-8 text-lg font-semibold">Omegle ka alternative: Hinglish me</h3>
-      <p className="mt-3 text-muted-foreground">
-        Omegle jaisi website dhoondh rahe ho? {SITE_NAME} ek free random chat site hai jahan aap bina signup ke
-        strangers se text ya video chat kar sakte ho. Skip button se naye insaan se turant mil sakte ho, aur Same
-        Country on karke sirf apne desh ke logon se baat kar sakte ho. Sirf 18+ ke liye.
-      </p>
+        <Row title="Omegle ka alternative: Hinglish me">
+          <p>
+            Omegle jaisi website dhoondh rahe ho? {SITE_NAME} ek free random chat site hai jahan aap bina signup ke
+            strangers se text ya video chat kar sakte ho. Skip button se naye insaan se turant mil sakte ho, aur Same
+            Country on karke sirf apne desh ke logon se baat kar sakte ho. Sirf 18+ ke liye.
+          </p>
+        </Row>
 
-      <h3 className="mt-8 text-lg font-semibold">Stay safe on any random chat site</h3>
-      <p className="mt-3 text-muted-foreground">
-        Never share your phone number, address, passwords or money details with a stranger. Use Skip or Report if a chat
-        feels wrong. Read our{' '}
-        <Link href="/guidelines" className="underline">community guidelines</Link>,{' '}
-        <Link href="/terms" className="underline">terms</Link> and{' '}
-        <Link href="/privacy" className="underline">privacy policy</Link> before you start.
-      </p>
+        <Row title="Stay safe on any random chat site">
+          <p>
+            Never share your phone number, address, passwords or money details with a stranger. Use Skip or Report if a chat
+            feels wrong. Read our{' '}
+            <Link href="/guidelines" className="underline">community guidelines</Link>,{' '}
+            <Link href="/terms" className="underline">terms</Link> and{' '}
+            <Link href="/privacy" className="underline">privacy policy</Link> before you start.
+          </p>
+        </Row>
 
-      <h3 className="mt-8 text-lg font-semibold">Omegle alternative questions</h3>
-      <div className="mt-3 divide-y rounded-3xl border bg-card/60">
         {OMEGLE_FAQ.map((f) => (
-          <details key={f.q} className="p-4">
-            <summary className="cursor-pointer list-none font-semibold">{f.q}</summary>
-            <p className="mt-2 text-sm text-muted-foreground">{f.a}</p>
-          </details>
+          <Row key={f.q} title={f.q}>
+            <p>{f.a}</p>
+          </Row>
         ))}
       </div>
 
-      <p className="mt-8 text-sm text-muted-foreground">
+      <p className="mt-6 text-sm text-muted-foreground">
         More:{' '}
         <Link href="/omegle-alternative" className="underline">Omegle alternative</Link>,{' '}
         <Link href="/random-video-chat" className="underline">random video chat</Link>,{' '}
