@@ -5,18 +5,21 @@ import { cn } from '@/lib/utils'
 import type { PublicProfile } from '@/components/identity'
 import { countryName, flagOf } from './country'
 import { getSocket } from './socket'
+import { warnColor, type ChatTheme } from './themes'
 
 type Msg = { id: number; from: 'stranger' | 'you' | 'notice'; text: string }
 type Phase = 'idle' | 'searching' | 'connected' | 'ended'
 
 const AUTO_NEXT = 30
 
-type Props = { me: PublicProfile; country: string | null; onSearchingChange?: (searching: boolean) => void; initialSame?: boolean }
+type Props = { me: PublicProfile; country: string | null; onSearchingChange?: (searching: boolean) => void; theme?: ChatTheme }
 
-export function MessagePanel({ me, country, onSearchingChange, initialSame = false }: Props) {
+export function MessagePanel({ me, country, onSearchingChange, theme }: Props) {
   const socket = getSocket()
   const [phase, setPhase] = useState<Phase>('idle')
-  const [sameCountry, setSameCountry] = useState(initialSame)
+  const [sameCountry, setSameCountry] = useState(true)
+  const [agreed, setAgreed] = useState(false)
+  const warn = theme ? warnColor(theme) : '#ff5a5a'
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [draft, setDraft] = useState('')
   const [typing, setTyping] = useState(false)
@@ -161,7 +164,7 @@ export function MessagePanel({ me, country, onSearchingChange, initialSame = fal
   return (
     <>
       <section aria-label="Messages" className="relative flex min-h-0 flex-1 flex-col">
-        {(phase === 'idle' || phase === 'ended') && (
+        {agreed && (phase === 'idle' || phase === 'ended') && (
           <label className="flex w-fit cursor-pointer items-center gap-2 whitespace-nowrap pb-2 pl-1 text-[11px] font-semibold">
             <span>Same Country</span>
             <button
@@ -182,7 +185,7 @@ export function MessagePanel({ me, country, onSearchingChange, initialSame = fal
 
         {phase === 'idle' ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-            <p className="text-2xl font-bold">You must be 18+</p>
+            <p className="text-2xl font-bold" style={{ color: warn }}>You must be 18+</p>
             <p className="text-sm opacity-80">No explicit content or harassment allowed. Click Start below!</p>
           </div>
         ) : (
@@ -223,13 +226,48 @@ export function MessagePanel({ me, country, onSearchingChange, initialSame = fal
             <div ref={endRef} aria-hidden="true" />
           </div>
         )}
+
+        {!agreed && (
+          <div className="shrink-0 px-1 pb-2 pt-3">
+            <p className="text-lg font-bold leading-snug" style={{ color: warn }}>You must be at least 18 years old</p>
+            <ul className="mt-0.5 space-y-0.5 text-base leading-snug opacity-90">
+              <li>No nudity, hate speech, or harassment</li>
+              <li>Do not ask for gender. This is not a dating site</li>
+              <li>Respect others and be kind</li>
+              <li>Violators will be banned</li>
+            </ul>
+            <button
+              type="button"
+              onClick={() => {
+                setAgreed(true)
+                start()
+              }}
+              className="mt-3 h-11 rounded-lg bg-gradient-to-b from-[#3b9bff] to-[#1d6fe8] px-6 text-base font-semibold text-white shadow active:opacity-80"
+            >
+              I Agree
+            </button>
+            <label className="mt-3 flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={sameCountry}
+                onChange={(e) => setSameCountry(e.target.checked)}
+                className="mt-0.5 size-5 shrink-0 accent-[#2563eb]"
+              />
+              <span>
+                <span className="block font-semibold">Prefer people from my country</span>
+                <span className="block text-sm opacity-70">Uncheck to match worldwide.</span>
+              </span>
+            </label>
+          </div>
+        )}
       </section>
 
       <form onSubmit={send} className="flex shrink-0 items-center gap-1.5">
         <button
           type="button"
           onClick={main.on}
-          className={cn('h-12 w-[58px] shrink-0 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-80', main.cls)}
+          disabled={!agreed}
+          className={cn('h-12 w-[58px] shrink-0 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-80 disabled:opacity-50', main.cls)}
         >
           {main.label}
         </button>

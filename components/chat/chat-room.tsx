@@ -12,7 +12,6 @@ import { MessagePanel } from './message-panel'
 import { VideoRoom } from './video-room'
 import { EntryGate } from './entry-gate'
 import { ProfileSetup } from './profile-setup'
-import { RulesSheet } from './rules-sheet'
 import { ThemePicker } from './theme-picker'
 import { THEMES, themeStyle } from './themes'
 import { useUserCountry } from './country'
@@ -28,8 +27,6 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [themeId, setThemeId] = useState('white')
   const [themeReady, setThemeReady] = useState(false)
-  const [rulesOk, setRulesOk] = useState(false)
-  const [same, setSame] = useState(true)
   const [themeOpen, setThemeOpen] = useState(false)
   const country = useUserCountry()
   const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[1]
@@ -132,13 +129,9 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
       ) : (
         me && (
           <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-3 lg:max-w-4xl">
-            {rulesOk && <MessagePanel me={me} country={country} onSearchingChange={setSearching} initialSame={same} />}
+            <MessagePanel me={me} country={country} onSearchingChange={setSearching} theme={theme} />
           </main>
         )
-      )}
-
-      {!video && identity && !needsProfile && !rulesOk && (
-        <RulesSheet theme={theme} same={same} onSameChange={setSame} onAgree={() => setRulesOk(true)} />
       )}
 
       {!video && (

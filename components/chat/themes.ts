@@ -59,3 +59,25 @@ export function themeStyle(t: ChatTheme): CSSProperties {
   }
   return s as CSSProperties
 }
+
+// Pink / red / orange themes: a red warning line would blend in, so it switches to yellow there.
+function isReddish(t: ChatTheme) {
+  if (t.kind !== 'photo' || !t.sent) return false
+  const n = parseInt(t.sent.slice(1), 16)
+  const r = n >> 16
+  const g = (n >> 8) & 255
+  const b = n & 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  if (max === min) return false
+  const d = max - min
+  let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  h = Math.round(h * 60)
+  if (h < 0) h += 360
+  return h <= 25 || h >= 300
+}
+
+export function warnColor(t: ChatTheme): string {
+  if (t.kind === 'white') return '#dc2626'
+  return isReddish(t) ? '#fde047' : '#ff5a5a'
+}
