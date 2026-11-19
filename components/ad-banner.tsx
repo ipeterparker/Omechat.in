@@ -37,8 +37,8 @@ export function AdBanner() {
     <section aria-label="Omechat promo video" className="mx-auto w-full max-w-xl px-4 pt-4 md:max-w-2xl">
       <Link
         ref={containerRef}
-        href="/chat?mode=video"
-        className="group relative block aspect-[16/10] overflow-hidden rounded-3xl border bg-[radial-gradient(ellipse_at_50%_30%,oklch(0.26_0.07_265)_0%,#0a0e1a_70%)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        href="/chat?mode=text"
+        className="group relative block aspect-[16/10] overflow-hidden rounded-3xl border text-white bg-[radial-gradient(ellipse_at_50%_30%,oklch(0.26_0.07_265)_0%,#0a0e1a_70%)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <div className="absolute inset-0" aria-hidden="true">
           <AdScene active={inView} onSceneChange={setSceneIndex} />
@@ -63,7 +63,7 @@ export function AdBanner() {
         </div>
 
         <span className="absolute left-4 top-6 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md">
-          <RunningBear className="h-3 w-[15px]" />
+          <RunningBear tone="light" className="h-3 w-[15px]" />
           Omechat
         </span>
 

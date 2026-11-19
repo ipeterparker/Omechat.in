@@ -5,7 +5,8 @@ import { useEffect, useRef } from 'react'
 const FRAMES = 10
 
 // Small bear (22x18). Stands still when `running` is false, runs in place while searching.
-export function ChatBear({ running, dark = true }: { running: boolean; dark?: boolean }) {
+// `dark` undefined = follow the site's Light/Dark mode. true/false = fixed (chat page follows its own chat theme).
+export function ChatBear({ running, dark }: { running: boolean; dark?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function ChatBear({ running, dark = true }: { running: boolean; dark?: bo
       ref={ref}
       aria-hidden="true"
       style={{ backgroundPosition: '66.6667% 0' }}
-      className={`block h-[18px] w-[22px] -translate-y-[3px] bg-[url(/images/bear-anim.png)] bg-no-repeat brightness-0 [background-size:1000%_100%] ${dark ? 'invert' : ''}`}
+      className={`block h-[18px] w-[22px] -translate-y-[3px] bg-[url(/images/bear-anim.png)] bg-no-repeat brightness-0 [background-size:1000%_100%] ${dark === undefined ? 'dark:invert' : dark ? 'invert' : ''}`}
     />
   )
 }

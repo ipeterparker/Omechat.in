@@ -44,13 +44,25 @@ export function SiteMenu({ open, onOpenChange }: Props) {
     } catch {}
   }
 
+  // Contact options appear only when NEXT_PUBLIC_CONTACT_EMAIL is set (add it in Vercel, then redeploy).
+  const contact = process.env.NEXT_PUBLIC_CONTACT_EMAIL
   const items = [
     { href: '/', label: 'Home', icon: '\u{1F3E0}' },
     { href: '/chat?mode=text', label: 'Text Chat', icon: '\u{1F4AC}' },
     ...(google ? [{ href: '/profile', label: 'Profile', icon: '\u{1F464}' }] : []),
+    { href: '/safety', label: 'Safety Tips', icon: '\u26A0\u{FE0F}' },
     { href: '/guidelines', label: 'Guidelines', icon: '\u{1F4D6}' },
+    { href: '/faq', label: 'FAQ', icon: '\u2753' },
+    { href: '/about', label: 'About Us', icon: '\u2139\u{FE0F}' },
+    { href: '/omegle-alternative', label: 'Omegle Alternative', icon: '\u{1F50D}' },
     { href: '/privacy', label: 'Privacy', icon: '\u{1F6E1}\u{FE0F}' },
     { href: '/terms', label: 'Terms', icon: '\u{1F4C4}' },
+    ...(contact
+      ? [
+          { href: `mailto:${contact}?subject=Report%20a%20problem`, label: 'Report a problem', icon: '\u{1F6A9}' },
+          { href: `mailto:${contact}`, label: 'Contact Us', icon: '\u2709\u{FE0F}' },
+        ]
+      : []),
   ]
 
   return (
@@ -103,7 +115,7 @@ export function SiteMenu({ open, onOpenChange }: Props) {
           </Link>
         )}
 
-        <ul className="flex flex-col gap-1">
+        <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
           {items.map(({ href, label, icon }) => (
             <li key={href}>
               <Link href={href} onClick={close} className="flex h-12 items-center gap-3 rounded-2xl px-3 text-base font-semibold active:bg-foreground/10">

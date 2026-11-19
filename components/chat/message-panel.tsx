@@ -11,12 +11,12 @@ type Phase = 'idle' | 'searching' | 'connected' | 'ended'
 
 const AUTO_NEXT = 30
 
-type Props = { me: PublicProfile; country: string | null; onSearchingChange?: (searching: boolean) => void }
+type Props = { me: PublicProfile; country: string | null; onSearchingChange?: (searching: boolean) => void; initialSame?: boolean }
 
-export function MessagePanel({ me, country, onSearchingChange }: Props) {
+export function MessagePanel({ me, country, onSearchingChange, initialSame = false }: Props) {
   const socket = getSocket()
   const [phase, setPhase] = useState<Phase>('idle')
-  const [sameCountry, setSameCountry] = useState(false)
+  const [sameCountry, setSameCountry] = useState(initialSame)
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [draft, setDraft] = useState('')
   const [typing, setTyping] = useState(false)
