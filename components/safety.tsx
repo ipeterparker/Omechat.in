@@ -8,7 +8,7 @@ const rules = [
 export function Safety() {
   return (
     <section id="safety" className="scroll-mt-24 px-4 pb-16">
-      <div className="mx-auto max-w-5xl lg:max-w-6xl rounded-[2rem] border bg-card/60 p-6 backdrop-blur sm:p-10">
+      <div className="mx-auto max-w-5xl rounded-[2rem] border bg-card/60 p-6 backdrop-blur sm:p-10">
         <h2 className="text-2xl font-semibold tracking-tight">House rules</h2>
         <ol className="mt-6 flex flex-col gap-4">
           {rules.map((rule, i) => (
@@ -26,7 +26,7 @@ export function Safety() {
 export function SiteFooter() {
   return (
     <footer className="border-t px-4 py-8">
-      <div className="mx-auto flex max-w-5xl lg:max-w-6xl items-center justify-between gap-4 text-sm text-muted-foreground">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 text-sm text-muted-foreground">
         <span className="font-semibold text-foreground">Omechat</span>
         <span>{'\u00A9 2026 Omechat'}</span>
       </div>

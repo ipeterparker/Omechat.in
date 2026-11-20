@@ -54,7 +54,7 @@ export function OmegleAlternative() {
   }
 
   return (
-    <section id="omegle-alternative" aria-labelledby="omegle-alt-title" className="mx-auto w-full max-w-3xl scroll-mt-24 px-4 pb-16 pt-4 lg:max-w-4xl">
+    <section id="omegle-alternative" aria-labelledby="omegle-alt-title" className="mx-auto w-full max-w-3xl scroll-mt-24 px-4 pb-16 pt-4">
       <h2 id="omegle-alt-title" className="text-balance text-2xl font-bold">
         Best Omegle alternative: free random chat with strangers
       </h2>
