@@ -41,9 +41,35 @@ const mix = (hex: string, a = 0.45) => {
   return `rgb(${c.join(',')})`
 }
 
+// Chat themes keep their own palette, so a Black chat stays black even when the site is in Light mode.
+const DARK_TOKENS: Record<string, string> = {
+  '--background': 'oklch(0.13 0.008 260)', '--foreground': 'oklch(0.97 0.005 260)',
+  '--card': 'oklch(0.18 0.01 260)', '--card-foreground': 'oklch(0.97 0.005 260)',
+  '--popover': 'oklch(0.18 0.01 260)', '--popover-foreground': 'oklch(0.97 0.005 260)',
+  '--primary': 'oklch(0.64 0.19 262)', '--primary-foreground': 'oklch(0.99 0 0)',
+  '--secondary': 'oklch(0.24 0.012 260)', '--secondary-foreground': 'oklch(0.97 0.005 260)',
+  '--muted': 'oklch(0.22 0.01 260)', '--muted-foreground': 'oklch(0.7 0.015 260)',
+  '--accent': 'oklch(0.24 0.012 260)', '--accent-foreground': 'oklch(0.97 0.005 260)',
+  '--border': 'oklch(1 0 0 / 9%)', '--input': 'oklch(1 0 0 / 14%)', '--ring': 'oklch(0.64 0.19 262)',
+  '--flame': 'oklch(0.8 0.12 58)', '--online': 'oklch(0.78 0.19 150)', '--stranger': 'oklch(0.7 0.17 22)',
+}
+const LIGHT_TOKENS: Record<string, string> = {
+  '--background': 'oklch(0.99 0.003 260)', '--foreground': 'oklch(0.2 0.02 260)',
+  '--card': 'oklch(1 0 0)', '--card-foreground': 'oklch(0.2 0.02 260)',
+  '--popover': 'oklch(1 0 0)', '--popover-foreground': 'oklch(0.2 0.02 260)',
+  '--primary': 'oklch(0.52 0.2 262)', '--primary-foreground': 'oklch(0.99 0 0)',
+  '--secondary': 'oklch(0.955 0.008 260)', '--secondary-foreground': 'oklch(0.2 0.02 260)',
+  '--muted': 'oklch(0.96 0.006 260)', '--muted-foreground': 'oklch(0.45 0.02 260)',
+  '--accent': 'oklch(0.955 0.008 260)', '--accent-foreground': 'oklch(0.2 0.02 260)',
+  '--border': 'oklch(0.2 0.02 260 / 12%)', '--input': 'oklch(0.2 0.02 260 / 16%)', '--ring': 'oklch(0.52 0.2 262)',
+  '--flame': 'oklch(0.62 0.16 50)', '--online': 'oklch(0.6 0.17 150)', '--stranger': 'oklch(0.6 0.2 22)',
+}
+
+export const darkTokensStyle = DARK_TOKENS as CSSProperties
+
 export function themeStyle(t: ChatTheme): CSSProperties {
-  if (t.kind === 'black') return {}
-  const s: Record<string, string> = { '--bd': t.kind === 'white' ? '#cbd5e1' : 'rgba(255,255,255,0.2)' }
+  if (t.kind === 'black') return { ...DARK_TOKENS, background: 'oklch(0.13 0.008 260)', color: 'oklch(0.97 0.005 260)' } as CSSProperties
+  const s: Record<string, string> = { ...(t.kind === 'white' ? LIGHT_TOKENS : DARK_TOKENS), '--bd': t.kind === 'white' ? '#cbd5e1' : 'rgba(255,255,255,0.2)' }
   if (t.kind === 'white') {
     Object.assign(s, {
       '--sent': '#2563eb', '--sent-ink': '#ffffff', '--recv': '#e2e8f0', '--recv-ink': '#0f172a',
@@ -60,7 +86,7 @@ export function themeStyle(t: ChatTheme): CSSProperties {
   return s as CSSProperties
 }
 
-// Pink / red / orange themes: a red warning line would blend in, so it switches to yellow there.
+// Pink / red themes only: a red warning line would blend in there, so it switches to yellow. Every other theme keeps red.
 function isReddish(t: ChatTheme) {
   if (t.kind !== 'photo' || !t.sent) return false
   const n = parseInt(t.sent.slice(1), 16)
@@ -74,7 +100,7 @@ function isReddish(t: ChatTheme) {
   let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
   h = Math.round(h * 60)
   if (h < 0) h += 360
-  return h <= 25 || h >= 300
+  return h <= 8 || h >= 300
 }
 
 export function warnColor(t: ChatTheme): string {

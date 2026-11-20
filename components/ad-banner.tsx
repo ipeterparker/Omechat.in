@@ -34,7 +34,7 @@ export function AdBanner() {
   const caption = captions[sceneIndex]
 
   return (
-    <section aria-label="Omechat promo video" className="mx-auto w-full max-w-xl px-4 pt-4 md:max-w-2xl">
+    <section aria-label="Omechat promo video" className="mx-auto w-full max-w-xl px-4 pt-4 md:max-w-2xl lg:mx-0 lg:max-w-none lg:px-0 lg:pt-0">
       <Link
         ref={containerRef}
         href="/chat?mode=text"

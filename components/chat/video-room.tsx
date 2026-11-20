@@ -72,6 +72,13 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const [reqs, setReqs] = useState<Req[]>([])
   const [banner, setBanner] = useState<Req | null>(null)
   const [camError, setCamError] = useState('')
+  // Reconnect: small chip with a 25s timer when the stranger drops, "reconnected" when they return
+  const [status, setStatus] = useState<null | { kind: 'away'; left: number } | { kind: 'back' } | { kind: 'offline' }>(null)
+  const resumeRef = useRef<{ id: string; token: string } | null>(null)
+  const initiatorRef = useRef(false)
+  const awayTick = useRef<number | undefined>(undefined)
+  const phaseRef = useRef<Phase>('idle')
+  const startRef = useRef<() => void>(() => {})
 
   const localRef = useRef<HTMLVideoElement>(null)
   const remoteRef = useRef<HTMLVideoElement>(null)
@@ -85,6 +92,10 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const countryRef = useRef(country)
   const micRef = useRef(mic)
   const camRef = useRef(cam)
+
+  useEffect(() => {
+    phaseRef.current = phase
+  }, [phase])
 
   useEffect(() => {
     sameRef.current = same
@@ -158,7 +169,25 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       for (const c of pendingIce.current) await pc.addIceCandidate(c)
       pendingIce.current = []
     }
-    const onMatched = async (d: { peer: PublicProfile; initiator: boolean }) => {
+    const clearAway = () => {
+      if (awayTick.current) window.clearInterval(awayTick.current)
+      awayTick.current = undefined
+    }
+    // After a drop, the side that made the first offer asks for a fresh network path (ICE restart).
+    const renegotiate = async () => {
+      const pc = pcRef.current
+      if (!pc || !initiatorRef.current) return
+      try {
+        const offer = await pc.createOffer({ iceRestart: true })
+        await pc.setLocalDescription(offer)
+        socket.emit('signal', { type: 'offer', data: offer })
+      } catch {}
+    }
+    const onMatched = async (d: { peer: PublicProfile; initiator: boolean; room?: { id: string; token: string } }) => {
+      resumeRef.current = d.room ?? null
+      initiatorRef.current = d.initiator
+      clearAway()
+      setStatus(null)
       setPeer(d.peer)
       setMsgs([])
       setPhase('connected')
@@ -191,13 +220,50 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       setMsgs((p) => [...p, { id: Date.now() + Math.random(), from: 'peer', text: d.text }])
     }
     const onTyping = (on: boolean) => setTyping(on)
-    const onLeft = () => {
+    const onLeft = (d?: { reason?: string }) => {
+      resumeRef.current = null
+      clearAway()
+      setStatus(null)
       closePc()
       setPeer(null)
       setMsgs([])
       setTyping(false)
       setPhase('idle')
+      // The stranger did not come back within 25 seconds: connect to someone new straight away.
+      if (d?.reason === 'timeout') startRef.current()
     }
+    const onAway = (d: { seconds?: number }) => {
+      clearAway()
+      let left = d.seconds ?? 25
+      setTyping(false)
+      setStatus({ kind: 'away', left })
+      awayTick.current = window.setInterval(() => {
+        left = Math.max(0, left - 1)
+        setStatus({ kind: 'away', left })
+      }, 1000)
+    }
+    const onBack = () => {
+      clearAway()
+      setStatus({ kind: 'back' })
+      window.setTimeout(() => setStatus((s) => (s && s.kind === 'back' ? null : s)), 4000)
+      void renegotiate()
+    }
+    const onDisconnect = () => {
+      if (phaseRef.current === 'connected') setStatus({ kind: 'offline' })
+    }
+    const onConnect = () => {
+      if (phaseRef.current === 'connected' && resumeRef.current) socket.emit('resume', resumeRef.current)
+      else if (phaseRef.current === 'searching') {
+        socket.emit('join', { mode: 'video', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
+      }
+    }
+    const onResumed = (d: { peer: PublicProfile; initiator: boolean }) => {
+      initiatorRef.current = d.initiator
+      setPeer(d.peer)
+      setStatus(null)
+      void renegotiate()
+    }
+    const onResumeFailed = () => onLeft({ reason: 'timeout' })
     const onRequest = (d: { fromId: string; from: PublicProfile }) => {
       const r = { id: d.fromId, from: d.from }
       setReqs((p) => [...p.filter((x) => x.id !== r.id), r])
@@ -215,6 +281,12 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     socket.on('message', onMessage)
     socket.on('typing', onTyping)
     socket.on('peer-left', onLeft)
+    socket.on('peer-away', onAway)
+    socket.on('peer-back', onBack)
+    socket.on('disconnect', onDisconnect)
+    socket.on('connect', onConnect)
+    socket.on('resumed', onResumed)
+    socket.on('resume-failed', onResumeFailed)
     socket.on('friend-request', onRequest)
     socket.on('friend-response', onResponse)
     return () => {
@@ -223,6 +295,13 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       socket.off('message', onMessage)
       socket.off('typing', onTyping)
       socket.off('peer-left', onLeft)
+      socket.off('peer-away', onAway)
+      socket.off('peer-back', onBack)
+      socket.off('disconnect', onDisconnect)
+      socket.off('connect', onConnect)
+      socket.off('resumed', onResumed)
+      socket.off('resume-failed', onResumeFailed)
+      clearAway()
       socket.off('friend-request', onRequest)
       socket.off('friend-response', onResponse)
     }
@@ -239,9 +318,17 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       flash('Chat server is not connected right now. Please try again in a moment.', 4000)
       return
     }
+    resumeRef.current = null
+    if (awayTick.current) window.clearInterval(awayTick.current)
+    awayTick.current = undefined
+    setStatus(null)
     setPhase('searching')
     socket.emit('join', { mode: 'video', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
   }, [socket, flash])
+
+  useEffect(() => {
+    startRef.current = start
+  }, [start])
 
   function next() {
     socket?.emit('skip')
@@ -250,6 +337,10 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   }
   function stop() {
     socket?.emit('stop')
+    resumeRef.current = null
+    if (awayTick.current) window.clearInterval(awayTick.current)
+    awayTick.current = undefined
+    setStatus(null)
     timers.current.forEach((id) => clearTimeout(id))
     setPhase('idle')
   }
@@ -339,6 +430,22 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
                 <p className="text-xs opacity-85">{peer.age ? `${peer.age} \u00B7 ${peer.gender ?? ''}` : 'Anonymous'}</p>
               </div>
             </div>
+            {status && (
+              <div
+                role="status"
+                className={cn('absolute right-3 flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold', glass)}
+                style={{ top }}
+              >
+                {status.kind === 'away' && (
+                  <>
+                    <span>Stranger disconnected</span>
+                    <span className="tabular-nums text-[#fbbf24]">{status.left}s</span>
+                  </>
+                )}
+                {status.kind === 'back' && <span className="text-[#4ade80]">Stranger reconnected</span>}
+                {status.kind === 'offline' && <span>You are offline. Reconnecting...</span>}
+              </div>
+            )}
             {canFriend && (
               <button
                 type="button"

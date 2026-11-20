@@ -13,7 +13,7 @@ import { VideoRoom } from './video-room'
 import { EntryGate } from './entry-gate'
 import { ProfileSetup } from './profile-setup'
 import { ThemePicker } from './theme-picker'
-import { THEMES, themeStyle } from './themes'
+import { THEMES, darkTokensStyle, themeStyle } from './themes'
 import { useUserCountry } from './country'
 
 type Mode = 'text' | 'video'
@@ -73,12 +73,16 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
   const video = initialMode === 'video'
 
   if (video && identity && !needsProfile && me) {
-    return <VideoRoom identity={identity} me={me} country={country} />
+    return (
+      <div style={darkTokensStyle}>
+        <VideoRoom identity={identity} me={me} country={country} />
+      </div>
+    )
   }
 
   return (
     <div
-      className="group flex h-dvh flex-col gap-3 bg-background p-3 text-foreground"
+      className="group flex h-dvh flex-col gap-3 bg-background p-3 text-foreground lg:gap-4 lg:p-6"
       style={{ ...themeStyle(theme), visibility: themeReady ? 'visible' : 'hidden' }}
       data-themed={theme.kind !== 'black' ? '' : undefined}
     >
