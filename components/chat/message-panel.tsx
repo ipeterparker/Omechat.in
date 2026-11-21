@@ -223,7 +223,11 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
 
   function send(e: FormEvent) {
     e.preventDefault()
-    const text = draft.trim()
+    sendText(draft)
+  }
+
+  function sendText(raw: string) {
+    const text = raw.trim()
     if (!text || phase !== 'connected') return
     add('you', text.slice(0, 500))
     setDraft('')
@@ -379,9 +383,9 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           {main.label}
         </button>
         <label htmlFor="message" className="sr-only">Message</label>
-        <input
+        <textarea
           id="message"
-          type="text"
+          rows={1}
           autoComplete="off"
           name="omechat-chat-message"
           enterKeyHint="send"
@@ -391,10 +395,15 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           data-form-type="other"
           value={draft}
           disabled={phase !== 'connected'}
-          onChange={(e) => onInput(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value
+            // Enter key (soft keyboard or Shift+Enter) arrives as a new line: send instead
+            if (v.includes('\n')) sendText(v.replace(/\n/g, ' '))
+            else onInput(v)
+          }}
           maxLength={500}
           placeholder="Type a message..."
-          className="h-12 min-w-0 flex-1 rounded-2xl border bg-card px-3.5 text-base lg:h-14 lg:px-5 lg:text-lg outline-none backdrop-blur-xl placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]"
+          className="h-12 min-w-0 flex-1 resize-none overflow-hidden rounded-2xl border bg-card px-3.5 py-3 text-base leading-6 lg:h-14 lg:px-5 lg:py-3.5 lg:text-lg lg:leading-7 outline-none backdrop-blur-xl placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]"
         />
         <button
           type="submit"
