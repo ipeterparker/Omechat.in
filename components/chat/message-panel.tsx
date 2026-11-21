@@ -383,6 +383,12 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           id="message"
           type="text"
           autoComplete="off"
+          name="omechat-chat-message"
+          enterKeyHint="send"
+          aria-autocomplete="none"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-form-type="other"
           value={draft}
           disabled={phase !== 'connected'}
           onChange={(e) => onInput(e.target.value)}
