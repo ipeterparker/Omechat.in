@@ -72,6 +72,14 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const [reqs, setReqs] = useState<Req[]>([])
   const [banner, setBanner] = useState<Req | null>(null)
   const [camError, setCamError] = useState('')
+  // Reconnect: small chip with a 29s timer when the stranger drops, "reconnected" when they return
+  const [status, setStatus] = useState<null | { kind: 'away'; left: number } | { kind: 'back' } | { kind: 'offline' }>(null)
+  const resumeRef = useRef<{ id: string; token: string } | null>(null)
+  const initiatorRef = useRef(false)
+  const awayTick = useRef<number | undefined>(undefined)
+  const phaseRef = useRef<Phase>('idle')
+  const startRef = useRef<() => void>(() => {})
+  const chatEndRef = useRef<HTMLDivElement>(null)
 
   const localRef = useRef<HTMLVideoElement>(null)
   const remoteRef = useRef<HTMLVideoElement>(null)
@@ -85,6 +93,14 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const countryRef = useRef(country)
   const micRef = useRef(mic)
   const camRef = useRef(cam)
+
+  useEffect(() => {
+    phaseRef.current = phase
+  }, [phase])
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ block: 'end' })
+  }, [msgs, typing])
 
   useEffect(() => {
     sameRef.current = same
@@ -158,7 +174,25 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       for (const c of pendingIce.current) await pc.addIceCandidate(c)
       pendingIce.current = []
     }
-    const onMatched = async (d: { peer: PublicProfile; initiator: boolean }) => {
+    const clearAway = () => {
+      if (awayTick.current) window.clearInterval(awayTick.current)
+      awayTick.current = undefined
+    }
+    // After a drop, the side that made the first offer asks for a fresh network path (ICE restart).
+    const renegotiate = async () => {
+      const pc = pcRef.current
+      if (!pc || !initiatorRef.current) return
+      try {
+        const offer = await pc.createOffer({ iceRestart: true })
+        await pc.setLocalDescription(offer)
+        socket.emit('signal', { type: 'offer', data: offer })
+      } catch {}
+    }
+    const onMatched = async (d: { peer: PublicProfile; initiator: boolean; room?: { id: string; token: string } }) => {
+      resumeRef.current = d.room ?? null
+      initiatorRef.current = d.initiator
+      clearAway()
+      setStatus(null)
       setPeer(d.peer)
       setMsgs([])
       setPhase('connected')
@@ -191,13 +225,50 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       setMsgs((p) => [...p, { id: Date.now() + Math.random(), from: 'peer', text: d.text }])
     }
     const onTyping = (on: boolean) => setTyping(on)
-    const onLeft = () => {
+    const onLeft = (d?: { reason?: string }) => {
+      resumeRef.current = null
+      clearAway()
+      setStatus(null)
       closePc()
       setPeer(null)
       setMsgs([])
       setTyping(false)
       setPhase('idle')
+      // The stranger did not come back within 29 seconds: connect to someone new straight away.
+      if (d?.reason === 'timeout') startRef.current()
     }
+    const onAway = (d: { seconds?: number }) => {
+      clearAway()
+      let left = d.seconds ?? 29
+      setTyping(false)
+      setStatus({ kind: 'away', left })
+      awayTick.current = window.setInterval(() => {
+        left = Math.max(0, left - 1)
+        setStatus({ kind: 'away', left })
+      }, 1000)
+    }
+    const onBack = () => {
+      clearAway()
+      setStatus({ kind: 'back' })
+      window.setTimeout(() => setStatus((s) => (s && s.kind === 'back' ? null : s)), 4000)
+      void renegotiate()
+    }
+    const onDisconnect = () => {
+      if (phaseRef.current === 'connected') setStatus({ kind: 'offline' })
+    }
+    const onConnect = () => {
+      if (phaseRef.current === 'connected' && resumeRef.current) socket.emit('resume', resumeRef.current)
+      else if (phaseRef.current === 'searching') {
+        socket.emit('join', { mode: 'video', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
+      }
+    }
+    const onResumed = (d: { peer: PublicProfile; initiator: boolean }) => {
+      initiatorRef.current = d.initiator
+      setPeer(d.peer)
+      setStatus(null)
+      void renegotiate()
+    }
+    const onResumeFailed = () => onLeft({ reason: 'timeout' })
     const onRequest = (d: { fromId: string; from: PublicProfile }) => {
       const r = { id: d.fromId, from: d.from }
       setReqs((p) => [...p.filter((x) => x.id !== r.id), r])
@@ -214,7 +285,19 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     socket.on('signal', onSignal)
     socket.on('message', onMessage)
     socket.on('typing', onTyping)
+    const onVisibility = () => {
+      if (phaseRef.current !== 'connected' || !resumeRef.current) return
+      if (document.hidden) socket.emit('hidden')
+      else if (socket.connected) socket.emit('resume', resumeRef.current)
+    }
+    document.addEventListener('visibilitychange', onVisibility)
     socket.on('peer-left', onLeft)
+    socket.on('peer-away', onAway)
+    socket.on('peer-back', onBack)
+    socket.on('disconnect', onDisconnect)
+    socket.on('connect', onConnect)
+    socket.on('resumed', onResumed)
+    socket.on('resume-failed', onResumeFailed)
     socket.on('friend-request', onRequest)
     socket.on('friend-response', onResponse)
     return () => {
@@ -222,7 +305,15 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       socket.off('signal', onSignal)
       socket.off('message', onMessage)
       socket.off('typing', onTyping)
+      document.removeEventListener('visibilitychange', onVisibility)
       socket.off('peer-left', onLeft)
+      socket.off('peer-away', onAway)
+      socket.off('peer-back', onBack)
+      socket.off('disconnect', onDisconnect)
+      socket.off('connect', onConnect)
+      socket.off('resumed', onResumed)
+      socket.off('resume-failed', onResumeFailed)
+      clearAway()
       socket.off('friend-request', onRequest)
       socket.off('friend-response', onResponse)
     }
@@ -239,9 +330,17 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       flash('Chat server is not connected right now. Please try again in a moment.', 4000)
       return
     }
+    resumeRef.current = null
+    if (awayTick.current) window.clearInterval(awayTick.current)
+    awayTick.current = undefined
+    setStatus(null)
     setPhase('searching')
     socket.emit('join', { mode: 'video', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
   }, [socket, flash])
+
+  useEffect(() => {
+    startRef.current = start
+  }, [start])
 
   function next() {
     socket?.emit('skip')
@@ -250,6 +349,10 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   }
   function stop() {
     socket?.emit('stop')
+    resumeRef.current = null
+    if (awayTick.current) window.clearInterval(awayTick.current)
+    awayTick.current = undefined
+    setStatus(null)
     timers.current.forEach((id) => clearTimeout(id))
     setPhase('idle')
   }
@@ -316,9 +419,9 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const top = 'calc(env(safe-area-inset-top, 0px) + 12px)'
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-black text-white">
+    <div className="fixed inset-0 z-40 flex flex-col bg-black text-white lg:grid lg:grid-cols-[1fr_1fr_minmax(320px,26%)] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-3 lg:p-3">
       {/* stranger (top half) */}
-      <div className="relative flex-1 overflow-hidden bg-[#0b1020]">
+      <div className="relative flex-1 overflow-hidden bg-[#0b1020] lg:min-h-0 lg:rounded-2xl">
         <video ref={remoteRef} autoPlay playsInline muted={!sound} className={cn('absolute inset-0 size-full object-cover', phase !== 'connected' && 'hidden')} />
         {phase === 'idle' && <p className="absolute inset-x-0 top-[38%] text-center text-xl font-bold opacity-90">Tap Start to meet someone</p>}
         {phase === 'searching' && (
@@ -339,6 +442,22 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
                 <p className="text-xs opacity-85">{peer.age ? `${peer.age} \u00B7 ${peer.gender ?? ''}` : 'Anonymous'}</p>
               </div>
             </div>
+            {status && (
+              <div
+                role="status"
+                className={cn('absolute right-[66px] flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold', glass)}
+                style={{ top }}
+              >
+                {status.kind === 'away' && (
+                  <>
+                    <span>Stranger disconnected</span>
+                    <span className="tabular-nums text-[#fbbf24]">{status.left}s</span>
+                  </>
+                )}
+                {status.kind === 'back' && <span className="text-[#4ade80]">Stranger reconnected</span>}
+                {status.kind === 'offline' && <span>You are offline. Reconnecting...</span>}
+              </div>
+            )}
             {canFriend && (
               <button
                 type="button"
@@ -354,7 +473,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
         )}
 
         <div className="absolute right-3 flex flex-col gap-2.5" style={{ top }}>
-          <button type="button" onClick={() => setSheet('report')} className={cn('flex size-[42px] items-center justify-center rounded-full', glass)}>
+          <button type="button" onClick={() => setSheet('report')} className={cn('flex size-[42px] items-center justify-center rounded-full', glass, 'lg:border-0 lg:bg-[#dc2626]')}>
             <Flag className="size-5" aria-hidden="true" />
             <span className="sr-only">Report</span>
           </button>
@@ -379,11 +498,11 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       </div>
 
       {/* middle button */}
-      <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center">
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center lg:pointer-events-auto lg:static lg:col-span-2 lg:row-start-2 lg:translate-y-0 lg:py-0.5">
         {phase === 'connected' ? (
-          <button type="button" onClick={next} className="pointer-events-auto flex size-[68px] items-center justify-center rounded-full bg-[#f97316] shadow-[0_4px_18px_rgba(249,115,22,0.5)]">
-            <ChevronsRight className="size-8" aria-hidden="true" />
-            <span className="sr-only">Next</span>
+          <button type="button" onClick={next} className="pointer-events-auto flex size-[68px] items-center justify-center rounded-full bg-[#f97316] shadow-[0_4px_18px_rgba(249,115,22,0.5)] lg:h-12 lg:w-auto lg:gap-2 lg:px-8">
+            <ChevronsRight className="size-8 lg:size-6" aria-hidden="true" />
+            <span className="sr-only lg:not-sr-only lg:text-lg lg:font-extrabold">Next</span>
           </button>
         ) : phase === 'searching' ? (
           <button type="button" onClick={stop} className="pointer-events-auto h-[52px] rounded-full bg-slate-600 px-9 text-lg font-extrabold">Stop</button>
@@ -393,7 +512,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       </div>
 
       {/* me (bottom half) */}
-      <div className="relative flex-1 overflow-hidden bg-[#252c52]">
+      <div className="relative flex-1 overflow-hidden bg-[#252c52] lg:min-h-0 lg:rounded-2xl">
         <video
           ref={localRef}
           autoPlay
@@ -412,14 +531,14 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
           </div>
         )}
 
-        <div className={cn('absolute left-3 top-12 flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm font-semibold', glass)}>
+        <div className={cn('absolute left-3 top-12 flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm font-semibold lg:hidden', glass)}>
           <Avatar name={me.name} photo={me.photo} size={28} />
           {me.name}
           {!mic && <span className="flex size-5 items-center justify-center rounded-full bg-red-600"><MicOff className="size-3" aria-hidden="true" /></span>}
           {!cam && <span className="flex size-5 items-center justify-center rounded-full bg-red-600"><VideoOff className="size-3" aria-hidden="true" /></span>}
         </div>
 
-        <div className="absolute right-3 top-12 flex flex-col gap-2.5">
+        <div className="absolute right-3 top-12 flex flex-col gap-2.5 lg:top-3">
           <button type="button" onClick={toggleMic} className={railBtn(false, !mic)}>
             {mic ? <Mic className="size-5" aria-hidden="true" /> : <MicOff className="size-5" aria-hidden="true" />}
             <span className="sr-only">Toggle my microphone</span>
@@ -438,7 +557,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
           </button>
         </div>
 
-        <div className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] right-[68px] flex flex-col items-start gap-1.5" aria-live="polite">
+        <div className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] right-[68px] flex flex-col items-start gap-1.5 lg:hidden" aria-live="polite">
           {msgs.slice(-3).map((m) => (
             <p key={m.id} className={cn('max-w-full break-words rounded-2xl px-3.5 py-1.5 text-base leading-snug', m.from === 'you' ? 'bg-[#2563eb]' : 'bg-slate-800/90')}>
               <span className={cn('font-semibold', m.from === 'peer' && 'text-[#f87171]')}>{m.from === 'you' ? 'You' : (peer?.name ?? 'Stranger')}</span>: {m.text}
@@ -454,7 +573,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
           )}
         </div>
 
-        <form onSubmit={sendMsg} className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] flex gap-2">
+        <form onSubmit={sendMsg} className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] flex gap-2 lg:hidden">
           <input
             value={draft}
             onChange={(e) => onInput(e.target.value)}
@@ -469,6 +588,44 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
           </button>
         </form>
       </div>
+
+      {/* desktop only: chat panel on the right */}
+      <aside className="hidden min-h-0 flex-col rounded-2xl bg-[#0f1424] p-3 lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:flex">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" aria-live="polite">
+          <div className="flex-1" />
+          {msgs.map((m) => (
+            <p
+              key={m.id}
+              className={cn('max-w-[85%] break-words rounded-2xl px-3.5 py-1.5 text-base leading-snug', m.from === 'you' ? 'self-end bg-[#2563eb]' : 'self-start bg-slate-800/90')}
+            >
+              <span className={cn('font-semibold', m.from === 'peer' && 'text-[#f87171]')}>{m.from === 'you' ? 'You' : (peer?.name ?? 'Stranger')}</span>: {m.text}
+            </p>
+          ))}
+          {typing && (
+            <span className="flex items-center gap-1 text-sm italic opacity-90">
+              typing
+              {[0, 1, 2].map((d) => (
+                <span key={d} className="size-1 animate-bounce rounded-full bg-current" style={{ animationDelay: `${d * 0.15}s` }} />
+              ))}
+            </span>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+        <form onSubmit={sendMsg} className="mt-3 flex shrink-0 gap-2">
+          <input
+            value={draft}
+            onChange={(e) => onInput(e.target.value)}
+            disabled={phase !== 'connected'}
+            maxLength={500}
+            autoComplete="off"
+            placeholder="Type a message..."
+            className={cn('h-[46px] min-w-0 flex-1 rounded-full px-[18px] text-base outline-none placeholder:text-slate-300', glass)}
+          />
+          <button type="submit" disabled={!draft.trim() || phase !== 'connected'} className="h-[46px] rounded-full bg-[#2563eb] px-5 font-bold disabled:bg-slate-600 disabled:text-white/60">
+            Send
+          </button>
+        </form>
+      </aside>
 
       {toast && (
         <div className="pointer-events-none absolute left-1/2 top-[62%] z-30 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/75 px-4 py-2 text-sm font-semibold">{toast}</div>

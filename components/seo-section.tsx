@@ -18,7 +18,7 @@ export function SeoSection() {
   const siteLd = { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: SITE_URL }
 
   return (
-    <section aria-labelledby="seo-title" className="mx-auto w-full max-w-3xl px-4 py-12">
+    <section aria-labelledby="seo-title" className="mx-auto w-full max-w-3xl px-4 py-12 lg:max-w-4xl">
       <h2 id="seo-title" className="text-balance text-2xl font-bold">Free random chat with strangers online</h2>
       <p className="mt-3 text-muted-foreground">
         {SITE_NAME} is a free random chat site. Join a random text chat or a random video chat, talk to strangers from

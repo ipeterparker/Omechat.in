@@ -8,7 +8,7 @@ const stats = [
 
 export function About() {
   return (
-    <section aria-labelledby="about-title" className="mx-auto w-full max-w-xl px-4 pt-10 md:max-w-2xl">
+    <section aria-labelledby="about-title" className="mx-auto w-full max-w-xl px-4 pt-10 md:max-w-2xl lg:mx-0 lg:max-w-none lg:px-0">
       <div className="rounded-3xl border bg-card/60 p-6 backdrop-blur-xl sm:p-8">
         <h2 id="about-title" className="text-balance text-2xl font-bold leading-tight tracking-tight">
           {'About Omechat \u2014 The Next-Gen Social Odyssey'}

@@ -25,9 +25,13 @@ export default function Page() {
     <>
       <SiteHeader />
       <main>
-        <Hero />
-        <About />
-        <AdBanner />
+        <div className="mx-auto w-full lg:grid lg:max-w-7xl lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-14 lg:px-8 lg:pt-8 2xl:max-w-[88rem]">
+          <div>
+            <Hero />
+            <About />
+          </div>
+          <AdBanner />
+        </div>
         <Features />
         <Safety />
         <SeoSection />

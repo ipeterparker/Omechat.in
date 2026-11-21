@@ -12,10 +12,11 @@ type Props = {
   onSelect: (id: string) => void
   onClose: () => void
   onSwitchAccount: () => void
+  basicOnly?: boolean // desktop: only Black / White
 }
 
 // Slides in from the left. Top: Black / White. Below: picture themes.
-export function ThemePicker({ open, current, account, onSelect, onClose, onSwitchAccount }: Props) {
+export function ThemePicker({ open, current, account, onSelect, onClose, onSwitchAccount, basicOnly = false }: Props) {
   const [shown, setShown] = useState(false)
 
   useEffect(() => {
@@ -62,6 +63,8 @@ export function ThemePicker({ open, current, account, onSelect, onClose, onSwitc
           ))}
         </div>
 
+        {!basicOnly && (
+          <>
         <h3 className="mb-2 mt-5 text-sm font-semibold text-white/60">Themes</h3>
         <div className="grid grid-cols-2 gap-3 pb-4">
           {photos.map((t) => (
@@ -81,6 +84,8 @@ export function ThemePicker({ open, current, account, onSelect, onClose, onSwitc
             </button>
           ))}
         </div>
+          </>
+        )}
 
         <div className="mt-auto flex items-center justify-between border-t border-white/10 pt-3 text-xs text-white/60">
           <span>{account}</span>

@@ -331,3 +331,15 @@ body {
   --online: oklch(0.6 0.17 150);
   --stranger: oklch(0.6 0.2 22);
 }
+
+/* Very large screens: scale the whole interface up a little so it does not look small. Phones and tablets are untouched. */
+@media (min-width: 1536px) {
+  html {
+    font-size: 17px;
+  }
+}
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+}
