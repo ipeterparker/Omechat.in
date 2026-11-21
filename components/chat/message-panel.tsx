@@ -210,7 +210,9 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   }, [phase, countdown, start])
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' })
+    // scroll only the message list (scrollIntoView also scrolls the whole page and pushes the input behind the keyboard)
+    const list = endRef.current?.parentElement
+    if (list) list.scrollTop = list.scrollHeight
   }, [msgs, typing, phase, status])
 
   function onInput(v: string) {

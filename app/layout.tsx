@@ -32,6 +32,7 @@ const THEME_INIT = `(function(){var r=document.documentElement,d=false;try{d=loc
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  interactiveWidget: 'resizes-content',
   colorScheme: 'light dark',
   themeColor: '#ffffff',
 }
