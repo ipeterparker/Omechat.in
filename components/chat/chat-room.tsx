@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ActiveCount } from '@/components/active-count'
 import { ChatBear } from '@/components/chat-bear'
@@ -130,13 +129,12 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
           </div>
 
           <div className="flex items-center gap-2 lg:contents">
-            <Link
-              href="/"
+            <div
               className={`flex h-[38px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full pl-[13px] pr-[18px] font-bold tracking-tight ${TAB}`}
             >
               <ChatBear running={searching} dark={theme.kind !== 'white'} />
               Omechat
-            </Link>
+            </div>
             <div className={`flex h-[38px] items-center gap-2 rounded-full px-[18px] text-sm font-semibold lg:-mr-2 lg:justify-self-end ${TAB}`}>
               <span className="relative flex size-2.5" aria-hidden="true">
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-online opacity-60" />

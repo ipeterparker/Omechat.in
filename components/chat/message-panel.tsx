@@ -260,7 +260,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
 
   return (
     <>
-      <section aria-label="Messages" className="relative flex min-h-0 flex-1 flex-col lg:rounded-3xl lg:border lg:border-[var(--bd,rgba(255,255,255,0.2))] lg:bg-[var(--tab,rgba(30,35,48,0.9))] lg:p-6">
+      <section aria-label="Messages" className={cn('relative flex min-h-0 flex-1 flex-col lg:rounded-3xl lg:border lg:border-[var(--bd,rgba(255,255,255,0.2))] lg:bg-[var(--tab,rgba(30,35,48,0.9))] lg:p-6', !agreed && 'overflow-y-auto')}>
         {agreed && (phase === 'idle' || phase === 'ended') && (
           <label className="flex w-fit lg:hidden cursor-pointer items-center gap-2 whitespace-nowrap pb-2 pl-1 text-[11px] font-semibold">
             <span>Same Country</span>
