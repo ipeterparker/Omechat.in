@@ -31,7 +31,13 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
   const [sameCountry, setSameCountry] = useState(true)
   const [themeOpen, setThemeOpen] = useState(false)
   const country = useUserCountry()
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const wide = useMediaQuery('(min-width: 960px)')
+  // Once the page has been desktop-wide it stays desktop: minimizing/resizing the window must not bring the picture themes back.
+  const [wasWide, setWasWide] = useState(false)
+  useEffect(() => {
+    if (wide) setWasWide(true)
+  }, [wide])
+  const isDesktop = wide || wasWide
   const picked = THEMES.find((t) => t.id === themeId) ?? THEMES[1]
   // On desktop only White and Black are available; a picture theme saved on another screen shows as Black.
   const theme = isDesktop && picked.kind === 'photo' ? (THEMES.find((t) => t.kind === 'black') ?? picked) : picked

@@ -1,5 +1,5 @@
 // Set NEXT_PUBLIC_SITE_URL in .env.local to your real domain (for example https://omechat.in).
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://omechat.in').replace(/\/$/, '')
 export const SITE_NAME = 'Omechat'
 
 export type FAQ = { q: string; a: string }
@@ -14,9 +14,9 @@ export type SeoPage = {
   faq: FAQ[]
 }
 
-export const HOME_TITLE = 'Omegle Alternative: Free Random Chat with Strangers | Omechat'
+export const HOME_TITLE = 'Omegle : Talk to Strangers! | Omechat'
 export const HOME_DESCRIPTION =
-  'Looking for an Omegle alternative? Omechat is a free random chat site with text and video chat, no signup, a Same Country filter and safety tools. 18+ only. Works on any phone or laptop.'
+  'Best Omegle alternative for random video chat and text chat with strangers worldwide. Start in one tap. Free, no signup, instant matching and 24/7 moderation.'
 
 export const KEYWORDS = [
   'random chat', 'random text chat', 'random video chat', 'talk to strangers', 'chat with strangers online',
