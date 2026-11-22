@@ -1,13 +1,92 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import type { PublicProfile } from '@/components/identity'
 import { countryName, flagOf } from './country'
 import { getSocket } from './socket'
 import { warnColor, type ChatTheme } from './themes'
 
-type Msg = { id: number; from: 'stranger' | 'you' | 'notice'; text: string }
+type Quote = { text: string; who: 'you' | 'stranger' } // who wrote the message being replied to (seen from this device)
+type Msg = { id: number; from: 'stranger' | 'you' | 'notice'; text: string; mid?: string; reply?: Quote; edited?: boolean }
+type Menu = { id: number; top: number; right: number }
+
+const newMid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
+
+// One chat bubble: swipe right = reply, hold (own messages) = menu. Touch / pen only.
+function MsgBubble({ className, children, onReply, onHold }: {
+  className: string
+  children: ReactNode
+  onReply: () => void
+  onHold?: (rect: DOMRect) => void
+}) {
+  const [dx, setDx] = useState(0)
+  const [drag, setDrag] = useState(false)
+  const el = useRef<HTMLDivElement>(null)
+  const g = useRef<{ x: number; y: number; moved: boolean; held: boolean; raw: number; timer?: number } | null>(null)
+  const cap = className.includes('self-end') ? 24 : 56
+  const end = () => {
+    if (g.current?.timer) clearTimeout(g.current.timer)
+    g.current = null
+    setDrag(false)
+    setDx(0)
+  }
+  return (
+    <div
+      ref={el}
+      className={cn(className, 'relative touch-pan-y [@media(pointer:coarse)]:select-none')}
+      style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: drag ? 'none' : 'transform .2s' }}
+      onContextMenu={onHold ? (e) => e.preventDefault() : undefined}
+      onPointerDown={(e) => {
+        if (e.pointerType === 'mouse') return
+        g.current = { x: e.clientX, y: e.clientY, moved: false, held: false, raw: 0 }
+        if (onHold) {
+          g.current.timer = window.setTimeout(() => {
+            if (g.current && !g.current.moved && el.current) {
+              g.current.held = true
+              navigator.vibrate?.(20)
+              onHold(el.current.getBoundingClientRect())
+            }
+          }, 450)
+        }
+      }}
+      onPointerMove={(e) => {
+        const s0 = g.current
+        if (!s0) return
+        const ddx = e.clientX - s0.x
+        const ddy = e.clientY - s0.y
+        if (!s0.moved && (Math.abs(ddx) > 8 || Math.abs(ddy) > 8)) {
+          s0.moved = true
+          if (s0.timer) clearTimeout(s0.timer)
+        }
+        if (ddx > 0 && Math.abs(ddx) > Math.abs(ddy)) {
+          s0.raw = ddx
+          setDrag(true)
+          setDx(Math.min(cap, ddx * 0.5))
+        }
+      }}
+      onPointerUp={() => {
+        const s0 = g.current
+        if (s0 && !s0.held && s0.raw >= 55) {
+          navigator.vibrate?.(15)
+          onReply()
+        }
+        end()
+      }}
+      onPointerCancel={end}
+    >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-10 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/25 text-base"
+        style={{ opacity: Math.min(1, dx / (cap * 0.9)) }}
+      >
+        {'\u21a9'}
+      </span>
+      {children}
+    </div>
+  )
+}
+
 type Phase = 'idle' | 'searching' | 'connected' | 'ended'
 
 const AUTO_NEXT = 30
@@ -38,6 +117,9 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const awayTick = useRef<number | undefined>(undefined)
   const phaseRef = useRef<Phase>('idle')
   const [confirmExit, setConfirmExit] = useState(false)
+  const [replyTo, setReplyTo] = useState<Quote | null>(null)
+  const [editing, setEditing] = useState<{ id: number; mid: string } | null>(null)
+  const [menu, setMenu] = useState<Menu | null>(null)
   const leavingRef = useRef(false)
   const endRef = useRef<HTMLDivElement>(null)
 
@@ -95,8 +177,8 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     timers.current.forEach((id) => clearTimeout(id))
     timers.current = []
   }
-  const add = useCallback((from: Msg['from'], text: string) => {
-    setMsgs((p) => [...p, { id: Date.now() + Math.random(), from, text }])
+  const add = useCallback((from: Msg['from'], text: string, extra?: Partial<Msg>) => {
+    setMsgs((p) => [...p, { id: Date.now() + Math.random(), from, text, ...extra }])
   }, [])
 
   const endChat = useCallback(
@@ -137,10 +219,15 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       setPeer(d.peer)
       setPhase('connected')
     }
-    const onMessage = (d: { text: string }) => {
+    const onMessage = (d: { text: string; mid?: string; reply?: { text: string; mine: boolean } }) => {
       setTyping(false)
-      add('stranger', d.text)
+      add('stranger', d.text, {
+        mid: d.mid,
+        reply: d.reply ? { text: d.reply.text, who: d.reply.mine ? 'stranger' : 'you' } : undefined,
+      })
     }
+    const onEdit = (d: { mid: string; text: string }) =>
+      setMsgs((p) => p.map((m) => (m.from === 'stranger' && m.mid === d.mid ? { ...m, text: d.text, edited: true } : m)))
     const onTyping = (on: boolean) => setTyping(on)
     const onLeft = (d: { reason: 'left' | 'disconnected' | 'timeout' }) => {
       if (d.reason === 'timeout') {
@@ -194,6 +281,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     document.addEventListener('visibilitychange', onVisibility)
     socket.on('matched', onMatched)
     socket.on('message', onMessage)
+    socket.on('edit', onEdit)
     socket.on('typing', onTyping)
     socket.on('peer-left', onLeft)
     socket.on('peer-away', onAway)
@@ -206,6 +294,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       document.removeEventListener('visibilitychange', onVisibility)
       socket.off('matched', onMatched)
       socket.off('message', onMessage)
+      socket.off('edit', onEdit)
       socket.off('typing', onTyping)
       socket.off('peer-left', onLeft)
       socket.off('peer-away', onAway)
@@ -256,11 +345,62 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   function sendText(raw: string) {
     const text = raw.trim()
     if (!text || phase !== 'connected') return
-    add('you', text.slice(0, 500))
+    if (editing) {
+      const edited = text.slice(0, 500)
+      setMsgs((p) => p.map((m) => (m.id === editing.id ? { ...m, text: edited, edited: true } : m)))
+      socket?.emit('edit', { mid: editing.mid, text: edited })
+      setEditing(null)
+      setDraft('')
+      socket?.emit('typing', false)
+      return
+    }
+    const mid = newMid()
+    add('you', text.slice(0, 500), { mid, reply: replyTo ?? undefined })
     setDraft('')
-    socket?.emit('message', { text: text.slice(0, 500) })
+    socket?.emit('message', {
+      text: text.slice(0, 500),
+      mid,
+      reply: replyTo ? { text: replyTo.text, mine: replyTo.who === 'you' } : undefined,
+    })
+    setReplyTo(null)
     socket?.emit('typing', false)
   }
+
+  function startReply(m: Msg) {
+    if (phase !== 'connected') return
+    setEditing(null)
+    setReplyTo({ text: m.text.slice(0, 120), who: m.from === 'you' ? 'you' : 'stranger' })
+    inputRef.current?.focus()
+  }
+
+  function startEdit(m: Msg) {
+    if (!m.mid) return
+    setReplyTo(null)
+    setEditing({ id: m.id, mid: m.mid })
+    setDraft(m.text)
+    setMenu(null)
+    window.setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  function cancelEdit() {
+    setEditing(null)
+    setDraft('')
+  }
+
+  function holdMsg(m: Msg, rect: DOMRect) {
+    if (phase !== 'connected' || !m.mid) return
+    const top = rect.top < 130 ? rect.bottom + 6 : rect.top - 6 - 96
+    setMenu({ id: m.id, top, right: Math.max(8, window.innerWidth - rect.right) })
+  }
+
+  // leaving the chat clears any half-done reply / edit
+  useEffect(() => {
+    if (phase !== 'connected') {
+      setReplyTo(null)
+      setEditing(null)
+      setMenu(null)
+    }
+  }, [phase])
 
   function leaveToIdle() {
     socket?.emit('stop')
@@ -295,6 +435,13 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const chip = 'w-fit self-start ml-0.5 rounded-full bg-[var(--recv,#1e293b)] px-3.5 py-1.5 text-sm text-[var(--recv-ink,#e2e8f0)]'
   const bubble = 'max-w-[82%] break-words rounded-2xl px-3.5 py-2 text-[14.45px] leading-snug lg:max-w-[70%] lg:px-4 lg:py-2.5 lg:text-[15.3px]'
   const label = peer?.name ?? 'Stranger'
+  const quote = (m: Msg) =>
+    m.reply ? (
+      <div className="mb-1 rounded-lg border-l-[3px] border-white/50 bg-white/15 px-2 py-1 text-[12.5px] leading-snug">
+        <span className="block font-semibold opacity-90">{m.reply.who === 'you' ? 'You' : label}</span>
+        <span className="line-clamp-2 opacity-90">{m.reply.text}</span>
+      </div>
+    ) : null
 
   return (
     <>
@@ -326,7 +473,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
             <p className="text-sm opacity-80">No explicit content or harassment allowed. Click Start below!</p>
           </div>
         ) : (
-          <div className="mt-auto flex min-h-0 flex-col gap-2.5 overflow-y-auto px-1 pb-1" aria-live="polite">
+          <div className="mt-auto flex min-h-0 flex-col gap-2.5 overflow-y-auto overflow-x-hidden px-1 pb-1" aria-live="polite">
             <div className={chip}>
               {phase === 'searching' ? (
                 'Looking for someone to talk to\u2026'
@@ -343,13 +490,22 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
                   {m.text} You can press Start for a new chat.
                 </p>
               ) : m.from === 'stranger' ? (
-                <div key={m.id} className={cn(bubble, 'self-start bg-[var(--recv,#1e293b)] text-[var(--recv-ink,#f1f5f9)]')}>
+                <MsgBubble key={m.id} className={cn(bubble, 'self-start bg-[var(--recv,#1e293b)] text-[var(--recv-ink,#f1f5f9)]')} onReply={() => startReply(m)}>
+                  {quote(m)}
                   <span className="font-semibold text-[#f87171]">{label}</span>: {m.text}
-                </div>
+                  {m.edited && <span className="ml-1.5 text-[10.5px] opacity-70">edited</span>}
+                </MsgBubble>
               ) : (
-                <div key={m.id} className={cn(bubble, 'self-end bg-[var(--sent,#2563eb)] text-[var(--sent-ink,#ffffff)]')}>
+                <MsgBubble
+                  key={m.id}
+                  className={cn(bubble, 'self-end bg-[var(--sent,#2563eb)] text-[var(--sent-ink,#ffffff)]')}
+                  onReply={() => startReply(m)}
+                  onHold={(rect) => holdMsg(m, rect)}
+                >
+                  {quote(m)}
                   <span className="font-semibold">You</span>: {m.text}
-                </div>
+                  {m.edited && <span className="ml-1.5 text-[10.5px] opacity-70">edited</span>}
+                </MsgBubble>
               ),
             )}
             {typing && (
@@ -411,6 +567,27 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
         )}
       </section>
 
+      {(replyTo || editing) && (
+        <div className="flex shrink-0 items-center gap-2.5 rounded-2xl border bg-card px-3 py-2 text-[13px] backdrop-blur-xl group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]">
+          <span className={cn('w-[3px] self-stretch rounded-full', editing ? 'bg-[#fbbf24]' : 'bg-[#60a5fa]')} />
+          <div className="min-w-0 flex-1">
+            <b className={cn('block text-[12.5px]', editing ? 'text-[#fcd34d]' : 'text-[#93c5fd]')}>
+              {editing ? 'Editing message' : `Replying to ${replyTo?.who === 'you' ? 'yourself' : label}`}
+            </b>
+            <span className="block truncate opacity-80">{editing ? draft : replyTo?.text}</span>
+          </div>
+          <button
+            type="button"
+            aria-label="Cancel"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => (editing ? cancelEdit() : setReplyTo(null))}
+            className="px-1 text-lg opacity-80"
+          >
+            {'\u2715'}
+          </button>
+        </div>
+      )}
+
       <form onSubmit={send} className="flex shrink-0 items-center gap-1.5 lg:gap-2.5">
         <button
           type="button"
@@ -448,11 +625,36 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           type="submit"
           onMouseDown={(e) => e.preventDefault()} // tapping Send must not take focus away from the message box
           disabled={!draft.trim() || phase !== 'connected'}
-          className="h-12 w-[58px] shrink-0 rounded-2xl bg-[#2563eb] px-0 text-sm font-bold lg:h-14 lg:w-[84px] lg:text-base text-white transition-colors disabled:bg-[#475569] disabled:text-white/60"
+          className={cn('h-12 w-[58px] shrink-0 rounded-2xl px-0 text-sm font-bold lg:h-14 lg:w-[84px] lg:text-base text-white transition-colors disabled:bg-[#475569] disabled:text-white/60', editing ? 'bg-[#16a34a]' : 'bg-[#2563eb]')}
         >
-          Send
+          {editing ? '\u2713' : 'Send'}
         </button>
       </form>
+
+      {menu && (
+        <div className="fixed inset-0 z-40" onClick={() => setMenu(null)}>
+          <div
+            className="absolute w-[150px] overflow-hidden rounded-2xl border border-white/10 bg-[#202020] text-[15px] text-white shadow-2xl"
+            style={{ top: menu.top, right: menu.right }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button type="button" className="flex w-full items-center justify-between px-4 py-3" onClick={() => { const m = msgs.find((x) => x.id === menu.id); if (m) startEdit(m) }}>
+              Edit <span aria-hidden="true">{'\u270f\ufe0f'}</span>
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between border-t border-white/10 px-4 py-3"
+              onClick={() => {
+                const m = msgs.find((x) => x.id === menu.id)
+                if (m) navigator.clipboard?.writeText(m.text)
+                setMenu(null)
+              }}
+            >
+              Copy <span aria-hidden="true">{'\ud83d\udccb'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {confirmExit && (
         <div role="dialog" aria-modal="true" aria-label="Leave this chat?" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">

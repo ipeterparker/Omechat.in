@@ -174,7 +174,20 @@ io.on('connection', (socket) => {
 
   socket.on('message', (d = {}) => {
     const peer = livePeer(socket)
-    if (peer && typeof d.text === 'string') peer.emit('message', { text: d.text.slice(0, 500) })
+    if (peer && typeof d.text === 'string') {
+      const out = { text: d.text.slice(0, 500) }
+      // optional: message id (for edits) and the message being replied to
+      if (typeof d.mid === 'string') out.mid = d.mid.slice(0, 40)
+      if (d.reply && typeof d.reply.text === 'string') out.reply = { text: d.reply.text.slice(0, 120), mine: !!d.reply.mine }
+      peer.emit('message', out)
+    }
+  })
+  // A user edited one of their own messages.
+  socket.on('edit', (d = {}) => {
+    const peer = livePeer(socket)
+    if (peer && typeof d.mid === 'string' && typeof d.text === 'string') {
+      peer.emit('edit', { mid: d.mid.slice(0, 40), text: d.text.slice(0, 500) })
+    }
   })
   socket.on('typing', (on) => livePeer(socket)?.emit('typing', !!on))
   socket.on('signal', (m) => livePeer(socket)?.emit('signal', m))
