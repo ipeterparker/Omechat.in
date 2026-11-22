@@ -41,15 +41,18 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const leavingRef = useRef(false)
   const endRef = useRef<HTMLDivElement>(null)
 
-  // Phones/touch devices only: the back button asks "Leave this chat?" only while a chat is connected (not while searching).
+  // Back button: while a chat is connected (phones) it asks "Leave this chat?"; on laptops, or while searching,
+  // it goes straight to the 18+ start screen. From the start screen, back leaves the page as usual.
+  const leaveToIdleRef = useRef<() => void>(() => {})
   useEffect(() => {
-    if (!window.matchMedia('(pointer: coarse)').matches) return
     window.history.pushState(null, '', window.location.href)
     const onPop = () => {
       if (leavingRef.current) return
-      if (phaseRef.current === 'connected') {
+      const p = phaseRef.current
+      if (p === 'connected' || p === 'searching') {
         window.history.pushState(null, '', window.location.href)
-        setConfirmExit(true)
+        if (p === 'connected' && window.matchMedia('(pointer: coarse)').matches) setConfirmExit(true)
+        else leaveToIdleRef.current()
       } else {
         leavingRef.current = true
         window.history.back()
@@ -259,6 +262,17 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     socket?.emit('typing', false)
   }
 
+  function leaveToIdle() {
+    socket?.emit('stop')
+    resetLink()
+    setMsgs([])
+    setTyping(false)
+    setConfirmSkip(false)
+    setPeer(null)
+    setPhase('idle')
+  }
+  leaveToIdleRef.current = leaveToIdle
+
   function skipPress() {
     if (!confirmSkip) {
       setConfirmSkip(true)
@@ -377,7 +391,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
             <button
               type="button"
               onClick={() => setAgreed(true)}
-              className="mt-3 h-11 rounded-lg bg-gradient-to-b from-[#3b9bff] to-[#1d6fe8] px-6 text-base font-semibold text-white shadow active:opacity-80 lg:mt-4 lg:h-12 lg:px-8 lg:text-lg"
+              className="mt-3 h-[37px] rounded-lg bg-gradient-to-b from-[#3b9bff] to-[#1d6fe8] px-5 text-[13.6px] font-semibold text-white shadow active:opacity-80 lg:mt-4 lg:h-[41px] lg:px-[27px] lg:text-[15.3px]"
             >
               I Agree
             </button>
@@ -442,7 +456,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
 
       {confirmExit && (
         <div role="dialog" aria-modal="true" aria-label="Leave this chat?" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-          <div className="w-full max-w-[320px] rounded-3xl border border-white/10 bg-[#14161d] p-6 text-center text-white shadow-2xl">
+          <div className="w-full max-w-[320px] rounded-3xl border border-white/10 bg-[#202020] p-6 text-center text-white shadow-2xl">
             <div className="text-[34px]" aria-hidden="true">👋</div>
             <p className="mt-2 text-xl font-bold">Leave this chat?</p>
             <p className="mt-1.5 text-sm opacity-70">Your current chat will end.</p>
@@ -451,18 +465,17 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
                 type="button"
                 autoFocus
                 onClick={() => setConfirmExit(false)}
-                className="h-[46px] flex-1 rounded-[14px] bg-[#2563eb] font-bold"
+                className="h-12 flex-1 rounded-full border border-white/15 bg-[#161616] text-[17px] font-semibold"
               >
                 No, stay
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  leavingRef.current = true
                   setConfirmExit(false)
-                  window.history.go(-2)
+                  leaveToIdle()
                 }}
-                className="h-[46px] flex-1 rounded-[14px] bg-white/10 font-bold"
+                className="h-12 flex-1 rounded-full bg-[#d13f3f] text-[17px] font-semibold"
               >
                 Yes, leave
               </button>
