@@ -32,8 +32,8 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const [confirmSkip, setConfirmSkip] = useState(false)
   const [countdown, setCountdown] = useState(AUTO_NEXT)
   const [peer, setPeer] = useState<PublicProfile | null>(null)
-  // Reconnect: a small status chip (stranger away with a 29s timer / back / you are offline)
-  const [status, setStatus] = useState<null | { kind: 'away'; left: number } | { kind: 'back' } | { kind: 'offline' }>(null)
+  // Reconnect: a small status chip (stranger disconnected / reconnected / you are offline)
+  const [status, setStatus] = useState<null | { kind: 'away' } | { kind: 'back' } | { kind: 'offline' }>(null)
   const resumeRef = useRef<{ id: string; token: string } | null>(null)
   const awayTick = useRef<number | undefined>(undefined)
   const phaseRef = useRef<Phase>('idle')
@@ -151,16 +151,11 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
         endChat(d.reason)
       }
     }
-    // Stranger lost their connection: show a small chip with a 29 second timer.
-    const onAway = (d: { seconds?: number }) => {
+    // Stranger closed the site / tab or lost internet: small chip. If they come back it turns into "reconnected".
+    const onAway = () => {
       clearAway()
-      let left = d.seconds ?? 29
       setTyping(false)
-      setStatus({ kind: 'away', left })
-      awayTick.current = window.setInterval(() => {
-        left = Math.max(0, left - 1)
-        setStatus({ kind: 'away', left })
-      }, 1000)
+      setStatus({ kind: 'away' })
     }
     const onBack = () => {
       clearAway()
@@ -185,31 +180,23 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       start()
       add('notice', 'You were away for too long, so that chat ended. Searching for a new stranger...')
     }
-    // Page minimized / hidden: tell the server (starts the 29s timer for the stranger). Back on screen: resume.
-    const onVisibility = () => {
-      if (phaseRef.current !== 'connected' || !resumeRef.current) return
-      if (document.hidden) socket.emit('hidden')
-      else if (socket.connected) socket.emit('resume', resumeRef.current)
-    }
-    document.addEventListener('visibilitychange', onVisibility)
     socket.on('matched', onMatched)
+    socket.on('peer-away', onAway)
+    socket.on('peer-back', onBack)
     socket.on('message', onMessage)
     socket.on('typing', onTyping)
     socket.on('peer-left', onLeft)
-    socket.on('peer-away', onAway)
-    socket.on('peer-back', onBack)
     socket.on('disconnect', onDisconnect)
     socket.on('connect', onConnect)
     socket.on('resumed', onResumed)
     socket.on('resume-failed', onResumeFailed)
     return () => {
-      document.removeEventListener('visibilitychange', onVisibility)
       socket.off('matched', onMatched)
+      socket.off('peer-away', onAway)
+      socket.off('peer-back', onBack)
       socket.off('message', onMessage)
       socket.off('typing', onTyping)
       socket.off('peer-left', onLeft)
-      socket.off('peer-away', onAway)
-      socket.off('peer-back', onBack)
       socket.off('disconnect', onDisconnect)
       socket.off('connect', onConnect)
       socket.off('resumed', onResumed)
@@ -288,14 +275,15 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       ? { label: 'Start', cls: 'bg-[#16a34a]', on: start }
       : phase === 'searching'
         ? { label: 'Stop', cls: 'bg-[#475569]', on: () => { socket?.emit('stop'); resetLink(); setPhase('idle') } }
-        : confirmSkip
+        : status?.kind === 'away'
+          ? { label: 'Start', cls: 'bg-[#16a34a]', on: () => { socket?.emit('skip'); start() } }
+          : confirmSkip
           ? { label: 'Really?', cls: 'bg-[#dc2626]', on: skipPress }
           : { label: 'Skip', cls: 'bg-[#f97316]', on: skipPress }
 
   const chip = 'w-fit self-start ml-0.5 rounded-full bg-[var(--recv,#1e293b)] px-3.5 py-1.5 text-sm text-[var(--recv-ink,#e2e8f0)]'
   const bubble = 'max-w-[82%] break-words rounded-2xl px-3.5 py-2 text-[14.45px] leading-snug lg:max-w-[70%] lg:px-4 lg:py-2.5 lg:text-[15.3px]'
   const label = peer?.name ?? 'Stranger'
-
   return (
     <>
       <section aria-label="Messages" className={cn('relative flex min-h-0 flex-1 flex-col lg:rounded-3xl lg:border lg:border-[var(--bd,rgba(255,255,255,0.2))] lg:bg-[var(--tab,rgba(30,35,48,0.9))] lg:p-6', !agreed && 'overflow-y-auto')}>
@@ -365,12 +353,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
                 role="status"
                 className="flex w-fit items-center gap-2 self-start rounded-full bg-[var(--recv,#1e293b)] px-3 py-1 text-xs text-[var(--recv-ink,#e2e8f0)]"
               >
-                {status.kind === 'away' && (
-                  <>
-                    <span>Stranger disconnected</span>
-                    <span className="font-semibold tabular-nums text-[#fbbf24]">{status.left}s</span>
-                  </>
-                )}
+                {status.kind === 'away' && <span>Stranger disconnected. You can press Start for a new chat.</span>}
                 {status.kind === 'back' && <span className="font-semibold text-[#4ade80]">Stranger reconnected</span>}
                 {status.kind === 'offline' && <span>You are offline. Reconnecting...</span>}
               </div>

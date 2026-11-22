@@ -5,7 +5,6 @@ const { Server } = require('socket.io')
 
 const PORT = process.env.PORT || 3001
 const ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*'
-const GRACE_MS = 29000 // how long a chat waits for a stranger who went offline / minimized to come back
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' })
@@ -159,19 +158,6 @@ io.on('connection', (socket) => {
     if (other && !other.away && other.sock.connected) other.sock.emit('peer-back')
   })
 
-  // The page was minimized / hidden: start the same grace timer, the stranger sees "disconnected" with a countdown.
-  socket.on('hidden', () => {
-    const m = socket.data.member
-    const room = socket.data.room
-    if (!room || !m || m.sock !== socket || m.away) return
-    const other = room.members.find((x) => x !== m)
-    m.away = true
-    if (other && !other.away && other.sock.connected) other.sock.emit('peer-away', { seconds: GRACE_MS / 1000 })
-    m.timer = setTimeout(() => {
-      if (rooms.has(room.id) && m.away) destroyRoom(room, 'timeout', m)
-    }, GRACE_MS)
-  })
-
   socket.on('message', (d = {}) => {
     const peer = livePeer(socket)
     if (peer && typeof d.text === 'string') peer.emit('message', { text: d.text.slice(0, 500) })
@@ -210,12 +196,9 @@ io.on('connection', (socket) => {
         // nobody is left to wait for
         destroyRoom(room, 'disconnected', m)
       } else {
-        // wait for them to come back, and tell the other person
+        // site/tab closed or internet off: keep the chat, tell the other person, resume if they come back
         m.away = true
-        other.sock.emit('peer-away', { seconds: GRACE_MS / 1000 })
-        m.timer = setTimeout(() => {
-          if (rooms.has(room.id) && m.away) destroyRoom(room, 'timeout', m)
-        }, GRACE_MS)
+        other.sock.emit('peer-away')
       }
     } else if (!room) {
       blocked.delete(socket.id)
