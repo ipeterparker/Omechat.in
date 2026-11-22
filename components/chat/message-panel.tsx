@@ -38,6 +38,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const awayTick = useRef<number | undefined>(undefined)
   const phaseRef = useRef<Phase>('idle')
   const endRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const timers = useRef<number[]>([])
   const typingOff = useRef<number | undefined>(undefined)
   const meRef = useRef(me)
@@ -226,6 +227,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   function send(e: FormEvent) {
     e.preventDefault()
     sendText(draft)
+    inputRef.current?.focus() // keep the keyboard open after sending
   }
 
   function sendText(raw: string) {
@@ -257,7 +259,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           : { label: 'Skip', cls: 'bg-[#f97316]', on: skipPress }
 
   const chip = 'w-fit self-start ml-0.5 rounded-full bg-[var(--recv,#1e293b)] px-3.5 py-1.5 text-sm text-[var(--recv-ink,#e2e8f0)]'
-  const bubble = 'max-w-[82%] break-words rounded-2xl px-3.5 py-2 text-[17px] leading-snug lg:max-w-[70%] lg:px-4 lg:py-2.5 lg:text-lg'
+  const bubble = 'max-w-[82%] break-words rounded-2xl px-3.5 py-2 text-[13.6px] leading-snug lg:max-w-[70%] lg:px-4 lg:py-2.5 lg:text-[14.4px]'
   const label = peer?.name ?? 'Stranger'
 
   return (
@@ -386,6 +388,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
         </button>
         <label htmlFor="message" className="sr-only">Message</label>
         <textarea
+          ref={inputRef}
           id="message"
           rows={1}
           autoComplete="off"
@@ -405,10 +408,11 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           }}
           maxLength={500}
           placeholder="Type a message..."
-          className="h-12 min-w-0 flex-1 resize-none overflow-hidden rounded-2xl border bg-card px-3.5 py-3 text-base leading-6 lg:h-14 lg:px-5 lg:py-3.5 lg:text-lg lg:leading-7 outline-none backdrop-blur-xl placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]"
+          className="h-12 min-w-0 flex-1 resize-none overflow-hidden rounded-2xl border bg-card px-3.5 py-3 text-[12.8px] leading-6 lg:h-14 lg:px-5 lg:py-3.5 lg:text-[14.4px] lg:leading-7 outline-none backdrop-blur-xl placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]"
         />
         <button
           type="submit"
+          onMouseDown={(e) => e.preventDefault()} // tapping Send must not take focus away from the message box
           disabled={!draft.trim() || phase !== 'connected'}
           className="h-12 w-[58px] shrink-0 rounded-2xl bg-[#2563eb] px-0 text-sm font-bold lg:h-14 lg:w-[84px] lg:text-base text-white transition-colors disabled:bg-[#475569] disabled:text-white/60"
         >
