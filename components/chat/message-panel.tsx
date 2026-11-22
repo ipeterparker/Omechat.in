@@ -37,7 +37,27 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const resumeRef = useRef<{ id: string; token: string } | null>(null)
   const awayTick = useRef<number | undefined>(undefined)
   const phaseRef = useRef<Phase>('idle')
+  const [confirmExit, setConfirmExit] = useState(false)
+  const leavingRef = useRef(false)
   const endRef = useRef<HTMLDivElement>(null)
+
+  // Phones/touch devices only: the back button asks "Leave this chat?" only while a chat is connected (not while searching).
+  useEffect(() => {
+    if (!window.matchMedia('(pointer: coarse)').matches) return
+    window.history.pushState(null, '', window.location.href)
+    const onPop = () => {
+      if (leavingRef.current) return
+      if (phaseRef.current === 'connected') {
+        window.history.pushState(null, '', window.location.href)
+        setConfirmExit(true)
+      } else {
+        leavingRef.current = true
+        window.history.back()
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const timers = useRef<number[]>([])
   const typingOff = useRef<number | undefined>(undefined)
@@ -259,7 +279,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           : { label: 'Skip', cls: 'bg-[#f97316]', on: skipPress }
 
   const chip = 'w-fit self-start ml-0.5 rounded-full bg-[var(--recv,#1e293b)] px-3.5 py-1.5 text-sm text-[var(--recv-ink,#e2e8f0)]'
-  const bubble = 'max-w-[82%] break-words rounded-2xl px-3.5 py-2 text-[13.6px] leading-snug lg:max-w-[70%] lg:px-4 lg:py-2.5 lg:text-[14.4px]'
+  const bubble = 'max-w-[82%] break-words rounded-2xl px-3.5 py-2 text-[14.45px] leading-snug lg:max-w-[70%] lg:px-4 lg:py-2.5 lg:text-[15.3px]'
   const label = peer?.name ?? 'Stranger'
 
   return (
@@ -408,7 +428,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           }}
           maxLength={500}
           placeholder="Type a message..."
-          className="h-12 min-w-0 flex-1 resize-none overflow-hidden rounded-2xl border bg-card px-3.5 py-3 text-[12.8px] leading-6 lg:h-14 lg:px-5 lg:py-3.5 lg:text-[14.4px] lg:leading-7 outline-none backdrop-blur-xl placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]"
+          className="h-12 min-w-0 flex-1 resize-none overflow-hidden rounded-2xl border bg-card px-3.5 py-3 text-[13.6px] leading-6 lg:h-14 lg:px-5 lg:py-3.5 lg:text-[15.3px] lg:leading-7 outline-none backdrop-blur-xl placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]"
         />
         <button
           type="submit"
@@ -419,6 +439,37 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           Send
         </button>
       </form>
+
+      {confirmExit && (
+        <div role="dialog" aria-modal="true" aria-label="Leave this chat?" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+          <div className="w-full max-w-[320px] rounded-3xl border border-white/10 bg-[#14161d] p-6 text-center text-white shadow-2xl">
+            <div className="text-[34px]" aria-hidden="true">👋</div>
+            <p className="mt-2 text-xl font-bold">Leave this chat?</p>
+            <p className="mt-1.5 text-sm opacity-70">Your current chat will end.</p>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setConfirmExit(false)}
+                className="h-[46px] flex-1 rounded-[14px] bg-[#2563eb] font-bold"
+              >
+                No, stay
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  leavingRef.current = true
+                  setConfirmExit(false)
+                  window.history.go(-2)
+                }}
+                className="h-[46px] flex-1 rounded-[14px] bg-white/10 font-bold"
+              >
+                Yes, leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
