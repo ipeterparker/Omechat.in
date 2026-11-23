@@ -409,7 +409,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           id="message"
           rows={1}
           autoComplete="off"
-          name="omechat-chat-message"
+          name="bearchat-chat-message"
           enterKeyHint="send"
           aria-autocomplete="none"
           data-lpignore="true"

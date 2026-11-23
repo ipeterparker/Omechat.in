@@ -18,10 +18,10 @@ export type PublicProfile = {
   country?: string | null
 }
 
-const K_ANON = 'omechat-identity'
-const K_GOOGLE = 'omechat-google'
-const K_PROFILE = 'omechat-profile'
-const K_FRIENDS = 'omechat-friends'
+const K_ANON = 'bearchat-identity'
+const K_GOOGLE = 'bearchat-google'
+const K_PROFILE = 'bearchat-profile'
+const K_FRIENDS = 'bearchat-friends'
 
 function read<T>(store: Storage, key: string): T | null {
   try {

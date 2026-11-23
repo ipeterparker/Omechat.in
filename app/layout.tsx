@@ -13,8 +13,8 @@ const instrumentSerif = Instrument_Serif({
 })
 
 export const metadata: Metadata = {
-  title: 'Omechat — Text & Video Chat with Strangers',
-  description: 'Omechat instantly pairs you with a random stranger for anonymous text or video chat.',
+  title: 'Bearchat — Text & Video Chat with Strangers',
+  description: 'Bearchat instantly pairs you with a random stranger for anonymous text or video chat.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 }
 
 // Runs before first paint: light is the default; a saved Dark choice is restored (no flash, survives refresh/close).
-const THEME_INIT = `(function(){var r=document.documentElement,d=false;try{d=localStorage.getItem('omechat-site-theme')==='dark'}catch(e){}r.classList.toggle('dark',d);r.classList.toggle('light',!d);r.style.colorScheme=d?'dark':'light';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#0f1116':'#ffffff')})()`
+const THEME_INIT = `(function(){var r=document.documentElement,d=false;try{d=localStorage.getItem('bearchat-site-theme')==='dark'}catch(e){}r.classList.toggle('dark',d);r.classList.toggle('light',!d);r.style.colorScheme=d?'dark':'light';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#0f1116':'#ffffff')})()`
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -46,7 +46,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`omechat ${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
+      className={`bearchat ${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />

@@ -4,8 +4,8 @@ import { LegalPage } from '@/components/legal-page'
 import { HOME_FAQ, OMEGLE_FAQ } from '@/lib/seo'
 
 export const metadata: Metadata = {
-  title: 'FAQ \u2014 Omechat',
-  description: 'Answers to common questions about Omechat: signup, Same Country, text and video chat, safety and the Omegle alternative.',
+  title: 'FAQ \u2014 Bearchat',
+  description: 'Answers to common questions about Bearchat: signup, Same Country, text and video chat, safety and the Omegle alternative.',
 }
 
 export default function FaqPage() {

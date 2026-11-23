@@ -17,7 +17,7 @@ export function Hero() {
   return (
     <section className="mx-auto flex w-full max-w-xl flex-col px-4 pt-6 md:max-w-2xl lg:mx-0 lg:max-w-none lg:px-0 lg:pt-0">
       <h1 className="mt-2 text-balance text-[2rem] font-bold leading-[1.15] tracking-tight sm:text-5xl lg:text-5xl xl:text-6xl">
-        Omechat:{' '}
+        Bearchat:{' '}
         <span className="bg-gradient-to-r from-primary to-[oklch(0.55_0.17_250)] dark:to-[oklch(0.78_0.12_240)] bg-clip-text text-transparent">
           The Ultimate
         </span>{' '}

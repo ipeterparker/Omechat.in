@@ -15,7 +15,7 @@ const AdScene = dynamic(() => import('./three/ad-scene'), {
 const captions = [
   { eyebrow: 'Feeling bored?', title: 'Meet someone new' },
   { eyebrow: 'Text or video', title: 'Say hi in one tap' },
-  { eyebrow: 'Only on Omechat', title: 'Your next great chat' },
+  { eyebrow: 'Only on Bearchat', title: 'Your next great chat' },
 ]
 
 export function AdBanner() {
@@ -34,7 +34,7 @@ export function AdBanner() {
   const caption = captions[sceneIndex]
 
   return (
-    <section aria-label="Omechat promo video" className="mx-auto w-full max-w-xl px-4 pt-4 md:max-w-2xl lg:mx-0 lg:max-w-none lg:px-0 lg:pt-10">
+    <section aria-label="Bearchat promo video" className="mx-auto w-full max-w-xl px-4 pt-4 md:max-w-2xl lg:mx-0 lg:max-w-none lg:px-0 lg:pt-10">
       <Link
         ref={containerRef}
         href="/chat?mode=text"
@@ -64,7 +64,7 @@ export function AdBanner() {
 
         <span className="absolute left-4 top-6 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md">
           <RunningBear tone="light" className="h-3 w-[15px]" />
-          Omechat
+          Bearchat
         </span>
 
         <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">

@@ -46,7 +46,7 @@ export function SiteHeader() {
             className="flex h-[38px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full border bg-card/70 pl-[13px] pr-[18px] font-bold tracking-tight backdrop-blur-xl lg:order-1 lg:h-11 lg:text-lg"
           >
             {isHome ? <ChatBear running={false} /> : <RunningBear />}
-            Omechat
+            Bearchat
           </Link>
           <div className="flex h-[38px] items-center gap-2 rounded-full border bg-card/70 px-[18px] text-sm font-semibold text-primary backdrop-blur-xl lg:order-3 lg:h-11 lg:text-base">
             <span className="relative flex size-2.5" aria-hidden="true">

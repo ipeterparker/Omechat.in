@@ -11,12 +11,12 @@ export function About() {
     <section aria-labelledby="about-title" className="mx-auto w-full max-w-xl px-4 pt-10 md:max-w-2xl lg:mx-0 lg:max-w-none lg:px-0">
       <div className="rounded-3xl border bg-card/60 p-6 backdrop-blur-xl sm:p-8">
         <h2 id="about-title" className="text-balance text-2xl font-bold leading-tight tracking-tight">
-          {'About Omechat \u2014 The Next-Gen Social Odyssey'}
+          {'About Bearchat \u2014 The Next-Gen Social Odyssey'}
         </h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Welcome to Omechat, a digital sanctuary designed to bridge physical boundaries and foster genuine,
+          Welcome to Bearchat, a digital sanctuary designed to bridge physical boundaries and foster genuine,
           unfiltered human connections across the globe. In an era where online interactions often feel scripted,
-          Omechat brings back the thrill of meeting someone new, one random conversation at a time.
+          Bearchat brings back the thrill of meeting someone new, one random conversation at a time.
         </p>
         <p className="mt-3 leading-relaxed text-muted-foreground">
           Pick text or video, tap Start Matching, and you are instantly paired with a stranger. Not feeling it? Skip

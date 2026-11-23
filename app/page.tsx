@@ -7,6 +7,7 @@ import { Features } from '@/components/features'
 import { Safety, SiteFooter } from '@/components/safety'
 import { SeoSection } from '@/components/seo-section'
 import { OmegleAlternative } from '@/components/omegle-alternative'
+import { RealOnline } from '@/components/real-online'
 import { HOME_DESCRIPTION, HOME_TITLE, KEYWORDS, SITE_NAME, SITE_URL } from '@/lib/seo'
 
 export const metadata: Metadata = {
@@ -36,6 +37,7 @@ export default function Page() {
         <Safety />
         <SeoSection />
         <OmegleAlternative />
+        <RealOnline />
       </main>
       <SiteFooter />
     </>

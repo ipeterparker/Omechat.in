@@ -1,4 +1,4 @@
-// Omechat matching + signaling server (Socket.IO). Run: npm install && node server.js
+// Bearchat matching + signaling server (Socket.IO). Run: npm install && node server.js
 const http = require('http')
 const crypto = require('crypto')
 const { Server } = require('socket.io')
@@ -8,7 +8,7 @@ const ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' })
-  res.end('omechat server ok')
+  res.end('bearchat server ok')
 })
 // Short ping timing so a dropped connection is noticed in about 15 seconds (default is about 45).
 const io = new Server(server, {
@@ -207,4 +207,4 @@ io.on('connection', (socket) => {
   })
 })
 
-server.listen(PORT, () => console.log('omechat server on', PORT))
+server.listen(PORT, () => console.log('bearchat server on', PORT))
