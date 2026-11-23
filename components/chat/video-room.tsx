@@ -73,7 +73,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const [banner, setBanner] = useState<Req | null>(null)
   const [camError, setCamError] = useState('')
   // Reconnect: small chip with a 29s timer when the stranger drops, "reconnected" when they return
-  const [status, setStatus] = useState<null | { kind: 'away'; left: number } | { kind: 'back' } | { kind: 'offline' }>(null)
+  const [status, setStatus] = useState<null | { kind: 'away' } | { kind: 'back' } | { kind: 'offline' }>(null)
   const resumeRef = useRef<{ id: string; token: string } | null>(null)
   const initiatorRef = useRef(false)
   const awayTick = useRef<number | undefined>(undefined)
@@ -234,18 +234,13 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       setMsgs([])
       setTyping(false)
       setPhase('idle')
-      // The stranger did not come back within 29 seconds: connect to someone new straight away.
+      // Our own chat could not be resumed: connect to someone new straight away.
       if (d?.reason === 'timeout') startRef.current()
     }
-    const onAway = (d: { seconds?: number }) => {
+    const onAway = () => {
       clearAway()
-      let left = d.seconds ?? 29
       setTyping(false)
-      setStatus({ kind: 'away', left })
-      awayTick.current = window.setInterval(() => {
-        left = Math.max(0, left - 1)
-        setStatus({ kind: 'away', left })
-      }, 1000)
+      setStatus({ kind: 'away' })
     }
     const onBack = () => {
       clearAway()
@@ -285,12 +280,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     socket.on('signal', onSignal)
     socket.on('message', onMessage)
     socket.on('typing', onTyping)
-    const onVisibility = () => {
-      if (phaseRef.current !== 'connected' || !resumeRef.current) return
-      if (document.hidden) socket.emit('hidden')
-      else if (socket.connected) socket.emit('resume', resumeRef.current)
-    }
-    document.addEventListener('visibilitychange', onVisibility)
     socket.on('peer-left', onLeft)
     socket.on('peer-away', onAway)
     socket.on('peer-back', onBack)
@@ -305,7 +294,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       socket.off('signal', onSignal)
       socket.off('message', onMessage)
       socket.off('typing', onTyping)
-      document.removeEventListener('visibilitychange', onVisibility)
       socket.off('peer-left', onLeft)
       socket.off('peer-away', onAway)
       socket.off('peer-back', onBack)
@@ -448,12 +436,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
                 className={cn('absolute right-[66px] flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold', glass)}
                 style={{ top }}
               >
-                {status.kind === 'away' && (
-                  <>
-                    <span>Stranger disconnected</span>
-                    <span className="tabular-nums text-[#fbbf24]">{status.left}s</span>
-                  </>
-                )}
+                {status.kind === 'away' && <span>Stranger disconnected</span>}
                 {status.kind === 'back' && <span className="text-[#4ade80]">Stranger reconnected</span>}
                 {status.kind === 'offline' && <span>You are offline. Reconnecting...</span>}
               </div>

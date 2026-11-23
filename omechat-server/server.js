@@ -10,19 +10,19 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' })
   res.end('bearchat server ok')
 })
-// Short ping timing so a dropped connection is noticed in about 15 seconds (default is about 45).
+// Ping timing: short net blips are ignored; a really dead connection (net off) is noticed in 15-30 seconds; a closed tab is noticed at once.
 const io = new Server(server, {
   cors: { origin: ORIGINS },
   maxHttpBufferSize: 200 * 1024,
-  pingInterval: 8000,
-  pingTimeout: 6000,
+  pingInterval: 15000,
+  pingTimeout: 15000,
 })
 
 const queue = [] // sockets waiting for a stranger
 const blocked = new Map() // socket.id -> Set of socket ids it reported
 const rooms = new Map() // room id -> { id, members: [member, member] }
 const byToken = new Map() // resume token -> member
-// member = { sock, token, initiator, away, timer, room }
+// member = { sock, token, initiator, away, timer, room, pending } (pending = events sent while this person was away)
 
 const rid = () => crypto.randomBytes(12).toString('hex')
 
@@ -52,6 +52,23 @@ function otherMember(s) {
 function livePeer(s) {
   const o = otherMember(s)
   return o && o.sock.connected ? o.sock : null
+}
+
+// Send an event to the other person. If they are away (closed tab / no net) it is kept and delivered when they come back.
+function relay(s, event, payload) {
+  const o = otherMember(s)
+  if (!o) return
+  if (o.away || !o.sock.connected) {
+    if (o.pending.length < 100) o.pending.push([event, payload])
+  } else {
+    o.sock.emit(event, payload)
+  }
+}
+
+function flushPending(m, sock) {
+  const q = m.pending
+  m.pending = []
+  for (const [ev, payload] of q) sock.emit(ev, payload)
 }
 
 // End a chat for everyone. `except` is the member who is leaving (not told).
@@ -95,7 +112,7 @@ function tryMatch(s) {
   removeFromQueue(s)
   const room = { id: rid(), members: [] }
   const join = (sock, initiator) => {
-    const m = { sock, token: rid(), initiator, away: false, timer: null, room }
+    const m = { sock, token: rid(), initiator, away: false, timer: null, room, pending: [] }
     room.members.push(m)
     sock.data.room = room
     sock.data.member = m
@@ -139,8 +156,12 @@ io.on('connection', (socket) => {
     }
     if (!m.away) {
       // never marked away (e.g. quick tab switch): nothing to resume, the chat is still alive
-      if (m.sock === socket) socket.emit('resumed', { peer: room.members.find((x) => x !== m).sock.data.profile, initiator: m.initiator })
-      else socket.emit('resume-failed')
+      if (m.sock === socket) {
+        const o = room.members.find((x) => x !== m)
+        socket.emit('resumed', { peer: o.sock.data.profile, initiator: m.initiator })
+        flushPending(m, socket)
+        if (o.away) socket.emit('peer-away')
+      } else socket.emit('resume-failed')
       return
     }
     clearTimeout(m.timer)
@@ -155,12 +176,22 @@ io.on('connection', (socket) => {
     }
     const other = room.members.find((x) => x !== m)
     socket.emit('resumed', { peer: other.sock.data.profile, initiator: m.initiator })
-    if (other && !other.away && other.sock.connected) other.sock.emit('peer-back')
+    flushPending(m, socket)
+    if (other.away) socket.emit('peer-away')
+    else if (other.sock.connected) other.sock.emit('peer-back')
   })
 
   socket.on('message', (d = {}) => {
-    const peer = livePeer(socket)
-    if (peer && typeof d.text === 'string') peer.emit('message', { text: d.text.slice(0, 500) })
+    if (typeof d.text !== 'string') return
+    const out = { text: d.text.slice(0, 500) }
+    if (typeof d.mid === 'string') out.mid = d.mid.slice(0, 24)
+    const r = d.reply
+    if (r && typeof r.text === 'string') out.reply = { text: r.text.slice(0, 120), mine: !!r.mine }
+    relay(socket, 'message', out)
+  })
+  socket.on('edit', (d = {}) => {
+    if (typeof d.text !== 'string' || typeof d.mid !== 'string') return
+    relay(socket, 'edit', { mid: d.mid.slice(0, 24), text: d.text.slice(0, 500) })
   })
   socket.on('typing', (on) => livePeer(socket)?.emit('typing', !!on))
   socket.on('signal', (m) => livePeer(socket)?.emit('signal', m))
@@ -190,15 +221,15 @@ io.on('connection', (socket) => {
     removeFromQueue(socket)
     const m = socket.data.member
     const room = socket.data.room
-    if (room && m && m.sock === socket && !m.away) {
+    if (room && m && m.sock === socket) {
       const other = room.members.find((x) => x !== m)
       if (!other || other.away) {
         // nobody is left to wait for
         destroyRoom(room, 'disconnected', m)
-      } else {
+      } else if (!m.away) {
         // site/tab closed or internet off: keep the chat, tell the other person, resume if they come back
         m.away = true
-        other.sock.emit('peer-away')
+        if (other.sock.connected) other.sock.emit('peer-away')
       }
     } else if (!room) {
       blocked.delete(socket.id)
