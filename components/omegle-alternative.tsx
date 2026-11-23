@@ -13,7 +13,7 @@ const reasons = [
 ]
 
 const steps = [
-  'Open Bearchat in your browser. Nothing to install.',
+  'Open Omechat in your browser. Nothing to install.',
   'Choose Text Chat or Video Chat.',
   'Continue anonymously and tap Start.',
   'Tap Skip to meet someone new, or Report if a chat feels wrong.',
@@ -65,7 +65,7 @@ export function OmegleAlternative() {
       </p>
 
       <div className="mt-4 divide-y rounded-3xl border bg-card/60">
-        <Row title="Why choose Bearchat as your Omegle alternative">
+        <Row title="Why choose Omechat as your Omegle alternative">
           <ul className="mt-1 space-y-2">
             {reasons.map((r) => (
               <li key={r.title}>

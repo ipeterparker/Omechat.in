@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { LegalPage } from '@/components/legal-page'
 
 export const metadata: Metadata = {
-  title: 'Safety Tips \u2014 Bearchat',
+  title: 'Safety Tips \u2014 Omechat',
   description: 'Simple safety tips for chatting with strangers online: protect your privacy, use Skip and Report, and avoid scams.',
 }
 
@@ -22,7 +22,7 @@ export default function SafetyPage() {
       <h2>Do not meet strangers alone</h2>
       <p>If you ever decide to meet someone from the internet, tell a trusted person and meet in a public place.</p>
       <h2>18+ only</h2>
-      <p>Bearchat is for adults. If you are under 18, please do not use this site.</p>
+      <p>Omechat is for adults. If you are under 18, please do not use this site.</p>
     </LegalPage>
   )
 }

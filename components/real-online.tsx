@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getSocket } from '@/components/chat/socket'
 
-// Mobile only: the real number of people connected to Bearchat right now (from the chat server). Number only.
+// Mobile only: the real number of people connected to Omechat right now (from the chat server). Number only.
 export function RealOnline() {
   const [count, setCount] = useState<number | null>(null)
 

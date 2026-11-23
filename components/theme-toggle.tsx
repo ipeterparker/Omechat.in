@@ -10,8 +10,8 @@ export function ThemeToggle({ className }: { className?: string }) {
   useEffect(() => {
     const read = () => setDark(document.documentElement.classList.contains('dark'))
     read()
-    window.addEventListener('bearchat-theme', read)
-    return () => window.removeEventListener('bearchat-theme', read)
+    window.addEventListener('omechat-theme', read)
+    return () => window.removeEventListener('omechat-theme', read)
   }, [])
 
   function set(next: boolean) {
@@ -21,10 +21,10 @@ export function ThemeToggle({ className }: { className?: string }) {
     r.style.colorScheme = next ? 'dark' : 'light'
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', next ? '#0f1116' : '#ffffff')
     try {
-      localStorage.setItem('bearchat-site-theme', next ? 'dark' : 'light')
+      localStorage.setItem('omechat-site-theme', next ? 'dark' : 'light')
     } catch {}
     setDark(next)
-    window.dispatchEvent(new Event('bearchat-theme'))
+    window.dispatchEvent(new Event('omechat-theme'))
   }
 
   return (

@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Bearchat',
-    short_name: 'Bearchat',
+    name: 'Omechat',
+    short_name: 'Omechat',
     description: 'Free random text and video chat with strangers.',
     start_url: '/',
     display: 'standalone',

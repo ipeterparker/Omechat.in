@@ -27,8 +27,8 @@ export function SiteFooter() {
   return (
     <footer className="border-t px-4 py-8">
       <div className="mx-auto flex max-w-5xl items-center lg:max-w-7xl 2xl:max-w-[88rem] justify-between gap-4 text-sm text-muted-foreground">
-        <span className="font-semibold text-foreground">Bearchat</span>
-        <span>{'\u00A9 2026 Bearchat'}</span>
+        <span className="font-semibold text-foreground">Omechat</span>
+        <span>{'\u00A9 2026 Omechat'}</span>
       </div>
     </footer>
   )

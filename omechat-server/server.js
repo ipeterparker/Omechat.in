@@ -1,4 +1,4 @@
-// Bearchat matching + signaling server (Socket.IO). Run: npm install && node server.js
+// Omechat matching + signaling server (Socket.IO). Run: npm install && node server.js
 const http = require('http')
 const crypto = require('crypto')
 const { Server } = require('socket.io')
@@ -8,7 +8,7 @@ const ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' })
-  res.end('bearchat server ok')
+  res.end('omechat server ok')
 })
 // Ping timing: short net blips are ignored; a really dead connection (net off) is noticed in 15-30 seconds; a closed tab is noticed at once.
 const io = new Server(server, {
@@ -238,4 +238,4 @@ io.on('connection', (socket) => {
   })
 })
 
-server.listen(PORT, () => console.log('bearchat server on', PORT))
+server.listen(PORT, () => console.log('omechat server on', PORT))

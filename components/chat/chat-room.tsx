@@ -43,7 +43,7 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('bearchat-theme')
+      const saved = localStorage.getItem('omechat-theme')
       if (saved && THEMES.some((t) => t.id === saved)) setThemeId(saved)
     } catch {}
     setThemeReady(true)
@@ -74,7 +74,7 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
   function chooseTheme(id: string) {
     setThemeId(id)
     try {
-      localStorage.setItem('bearchat-theme', id)
+      localStorage.setItem('omechat-theme', id)
     } catch {}
   }
 
@@ -133,7 +133,7 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
               className={`flex h-[38px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full pl-[13px] pr-[18px] font-bold tracking-tight ${TAB}`}
             >
               <ChatBear running={searching} dark={theme.kind !== 'white'} />
-              Bearchat
+              Omechat
             </div>
             <div className={`flex h-[38px] items-center gap-2 rounded-full px-[18px] text-sm font-semibold lg:-mr-2 lg:justify-self-end ${TAB}`}>
               <span className="relative flex size-2.5" aria-hidden="true">

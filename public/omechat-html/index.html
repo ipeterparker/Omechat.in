@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090c14" />
+  <title>Omechat - Talk to strangers, text or video</title>
+  <meta name="description" content="Omechat: talk to strangers in your browser with text or video chat. Anonymous, instant and moderated." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-row">
+      <button type="button" id="menu-btn" class="pill round" aria-expanded="false" aria-controls="site-menu">
+        <svg class="icon icon-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg class="icon icon-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <span class="sr-only" id="menu-label">Open menu</span>
+      </button>
+
+      <div class="header-right">
+        <a href="#" class="pill brand">
+          <span class="bear-wrap" aria-hidden="true"><span class="bear-run"></span></span>
+          Omechat
+        </a>
+        <div class="pill active">
+          <span class="dot" aria-hidden="true"><span class="dot-ping"></span><span class="dot-core"></span></span>
+          <span><span id="active-count">4,910</span> <span class="active-word">Active</span></span>
+        </div>
+      </div>
+    </div>
+
+    <nav id="site-menu" class="menu" aria-label="Main" hidden>
+      <ul>
+        <li><a href="chat.html?mode=text">Text chat</a></li>
+        <li><a href="chat.html?mode=video">Video chat</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#safety">Safety</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero container-sm">
+      <h1>Omechat: <span class="gradient-text">The Ultimate</span> Connection Space</h1>
+      <p class="muted">Talk to strangers in your browser &mdash; text or video.</p>
+
+      <fieldset class="modes">
+        <legend class="sr-only">Choose chat mode</legend>
+        <label class="mode is-active">
+          <input type="radio" name="mode" value="text" checked class="sr-only" />
+          <span class="mode-icon">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+          </span>
+          <span class="mode-label">Text Chat</span>
+        </label>
+        <label class="mode">
+          <input type="radio" name="mode" value="video" class="sr-only" />
+          <span class="mode-icon">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+          </span>
+          <span class="mode-label">Video Chat</span>
+        </label>
+      </fieldset>
+
+      <a href="chat.html?mode=text" id="start-btn" class="start-btn">
+        <span class="start-border" aria-hidden="true"></span>
+        <span class="start-inner">
+          Start Matching
+          <svg class="icon sparkle" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 15.5A2 2 0 0 0 8.5 14.1l-6.1-1.6a.5.5 0 0 1 0-1l6.1-1.6a2 2 0 0 0 1.4-1.4l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0Z"/></svg>
+        </span>
+      </a>
+
+      <p class="secure muted">
+        <svg class="icon lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Encrypted &amp; Moderated &mdash; Keep the vibe clean.
+      </p>
+    </section>
+
+    <!-- About -->
+    <section class="about container-sm" aria-labelledby="about-title">
+      <div class="card about-card">
+        <h2 id="about-title">About Omechat &mdash; The Next-Gen Social Odyssey</h2>
+        <p class="muted">Welcome to Omechat, a digital sanctuary designed to bridge physical boundaries and foster genuine, unfiltered human connections across the globe. In an era where online interactions often feel scripted, Omechat brings back the thrill of meeting someone new, one random conversation at a time.</p>
+        <p class="muted">Pick text or video, tap Start Matching, and you are instantly paired with a stranger. Not feeling it? Skip to the next person in a single tap.</p>
+      </div>
+
+      <ul class="card stats">
+        <li>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+          <strong>120+</strong><span>Countries</span>
+        </li>
+        <li>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5M22 8l-5 5"/></svg>
+          <strong>Zero</strong><span>Sign up</span>
+        </li>
+        <li>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <strong>24/7</strong><span>Moderated</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="features container">
+      <p class="eyebrow">Why Omechat</p>
+      <h2>Simple by design. Calm by default.</h2>
+      <ul class="feature-grid">
+        <li class="card feature">
+          <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 4.2A10 10 0 0 1 12 4c7 0 10 8 10 8a13 13 0 0 1-1.7 2.7M6.6 6.6A13.5 13.5 0 0 0 2 12s3 8 10 8a9.7 9.7 0 0 0 5.4-1.6M2 2l20 20M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></span>
+          <div><h3>Fully anonymous</h3><p class="muted">No account, no name, no trace. You decide what to share.</p></div>
+        </li>
+        <li class="card feature">
+          <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+          <div><h3>Instant matching</h3><p class="muted">One tap and you are talking. Skip anytime to meet someone else.</p></div>
+        </li>
+        <li class="card feature">
+          <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></span>
+          <div><h3>Worldwide</h3><p class="muted">Strangers from every corner of the world, any hour of the day.</p></div>
+        </li>
+        <li class="card feature">
+          <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <div><h3>Moderated</h3><p class="muted">Report in one tap. Bad actors are removed quickly.</p></div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Safety -->
+    <section id="safety" class="safety container">
+      <div class="card safety-card">
+        <h2>House rules</h2>
+        <ol>
+          <li><span class="num">01</span><span class="muted">Be respectful. No harassment, hate or threats.</span></li>
+          <li><span class="num">02</span><span class="muted">Never share personal info like your address or phone.</span></li>
+          <li><span class="num">03</span><span class="muted">Nudity and sexual content are not allowed.</span></li>
+          <li><span class="num">04</span><span class="muted">Use Report if someone makes you uncomfortable.</span></li>
+        </ol>
+        <a href="chat.html?mode=video" class="btn-primary">Start chatting</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-row">
+      <strong>Omechat</strong>
+      <span class="muted">&copy; 2026 Omechat</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
