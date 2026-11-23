@@ -297,10 +297,13 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* a left/right swipe on the page must not trigger the browser's swipe-back / swipe-forward */
+  overscroll-behavior-x: none;
 }
 
 body {
   overflow-x: clip;
+  overscroll-behavior-x: none;
 }
 
 @supports not (height: 100dvh) {
