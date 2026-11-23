@@ -32,19 +32,19 @@ export const KEYWORDS = [
 ]
 
 export const OMEGLE_FAQ: FAQ[] = [
-  { q: 'What is the best Omegle alternative?', a: 'The best Omegle alternative is one that is free, works in your browser, needs no signup and has real safety tools. Omechat offers random text and video chat, a Skip button, a Report button and a Same Country filter, for 18+ users only.' },
-  { q: 'Is there an Omegle alternative with no signup?', a: 'Yes. Omechat lets you continue anonymously, so you can start a random chat in a few seconds without creating an account.' },
-  { q: 'Is there an Omegle alternative for India?', a: 'Yes. Turn on Same Country in Omechat and you will be matched only with people from India. You can chat in English, Hindi or Hinglish.' },
-  { q: 'Why did people look for Omegle alternatives?', a: 'Omegle shut down in November 2023, so people started looking for similar random chat sites to meet new people online.' },
-  { q: 'Does Omechat work on mobile?', a: 'Yes. Omechat runs in your phone browser on Android and iPhone, so there is no app to download.' },
+  { q: 'What is the best Omegle alternative?', a: 'The best Omegle alternative is one that is free, works in your browser, needs no signup and has real safety tools. Omechat offers random text and video chat, a Skip button, a Report button and a Same Country filter, for 18+ users only. If you search for Omegle, Omegle talk, Omegle alternatives or Ome chat, you can start on omechat.in in one tap, on mobile or laptop.' },
+  { q: 'Is there an Omegle alternative with no signup?', a: 'Yes. Omechat is an Omegle alternative with no signup for text chat: continue anonymously and start a random chat in a few seconds without creating an account. Signing in with Google is optional, adds a profile, and is used for video chat.' },
+  { q: 'Is there an Omegle alternative for India?', a: 'Yes. Turn on Same Country in Omechat and you will be matched only with people from India, so it works as a random chat India site and an Omegle alternative for Indian users. You can chat in English, Hindi or Hinglish, free on Android, iPhone and laptop.' },
+  { q: 'Why did people look for Omegle alternatives?', a: 'Omegle shut down in November 2023, so many people started looking for Omegle alternatives: similar sites to talk to strangers, make new friends and have random video chat or text chat online. Omechat is built for the same need, with an 18+ rule and a Report button.' },
+  { q: 'Does Omechat work on mobile?', a: 'Yes. Omechat works in the browser on Android and iPhone and on laptops, so there is no app to download. Open omechat.in, pick text chat or video chat, tap Start and talk to strangers for free.' },
 ]
 
 export const HOME_FAQ: FAQ[] = [
-  { q: 'What is Omechat?', a: 'Omechat is a free website where you can talk to random people online through text chat or video chat. Tap Start, get matched with a stranger, and tap Skip to meet someone new.' },
-  { q: 'Do I need to sign up?', a: 'No. You can continue anonymously and start chatting right away. If you sign in with Google you can add a name, photo and age to your profile.' },
-  { q: 'Is Omechat an Omegle alternative?', a: 'Yes. If you liked random chat sites such as Omegle, Omechat gives you a similar way to meet new people. Omechat is an independent site and is not connected to Omegle.' },
-  { q: 'Can I chat only with people from my country?', a: 'Yes. Turn on the Same Country option and you will only be matched with people from your own country.' },
-  { q: 'Who can use Omechat?', a: 'You must be 18 or older. Explicit content and harassment are not allowed, and you can report anyone from inside the chat.' },
+  { q: 'What is Omechat?', a: 'Omechat (omechat.in, also searched as Ome chat) is a free random chat website where you can talk to strangers online through text chat or video chat. Tap Start, get matched with a random person, and tap Skip to meet someone new. It works in your browser on mobile and laptop, with no app to install, for people aged 18 and above.' },
+  { q: 'Do I need to sign up?', a: 'No. You can continue anonymously and start a text chat right away. Signing in with Google is optional: it lets you add a name, photo and age to your profile and is used for video chat.' },
+  { q: 'Is Omechat an Omegle alternative?', a: 'Yes. If you used Omegle or searched for Omegle talk to strangers, Omechat gives you a similar way to meet new people online: random text and video chat, instant matching, a Skip button and a Report button. It is a free Omegle alternative available worldwide, including India. Omechat is an independent site and is not connected to Omegle.' },
+  { q: 'Can I chat only with people from my country?', a: 'Yes. Turn on the Same Country option and you will only be matched with people from your own country, for example random chat India for Indian users. Turn it off to talk to strangers from all over the world. You can chat in English, Hindi or Hinglish.' },
+  { q: 'Who can use Omechat?', a: 'You must be 18 or older. Explicit content, nudity, hate speech and harassment are not allowed, and you can report anyone from inside the chat. Do not share personal details with strangers, and use Skip to leave any chat that feels uncomfortable.' },
 ]
 
 export const PAGES: SeoPage[] = [
