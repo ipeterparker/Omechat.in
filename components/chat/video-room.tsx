@@ -9,7 +9,6 @@ import { addFriend, type Identity, type PublicProfile } from '@/components/ident
 import { cn } from '@/lib/utils'
 import { flagOf } from './country'
 import { blockText, getSocket } from './socket'
-import { BlockNotice } from './block-notice'
 
 type Phase = 'idle' | 'searching' | 'connected'
 type Msg = { id: number; from: 'you' | 'peer'; text: string }
@@ -72,7 +71,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const [toast, setToast] = useState('')
   const [reqs, setReqs] = useState<Req[]>([])
   const [banner, setBanner] = useState<Req | null>(null)
-  const [blockUntil, setBlockUntil] = useState<number | null>(null)
   const [camError, setCamError] = useState('')
   // Reconnect: small chip with a 29s timer when the stranger drops, "reconnected" when they return
   const [status, setStatus] = useState<null | { kind: 'away' } | { kind: 'back' } | { kind: 'offline' }>(null)
@@ -280,7 +278,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     }
     // Blocked for 3 minutes (banned word)
     const onBlocked = (d: { ms: number }) => {
-      setBlockUntil(Date.now() + d.ms)
       resumeRef.current = null
       clearAway()
       setStatus(null)
@@ -425,7 +422,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-black text-white lg:grid lg:grid-cols-[1fr_1fr_minmax(320px,26%)] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-3 lg:p-3">
-      <BlockNotice until={blockUntil} onDone={() => setBlockUntil(null)} />
       {/* stranger (top half) */}
       <div className="relative flex-1 overflow-hidden bg-[#0b1020] lg:min-h-0 lg:rounded-2xl">
         <video ref={remoteRef} autoPlay playsInline muted={!sound} className={cn('absolute inset-0 size-full object-cover', phase !== 'connected' && 'hidden')} />

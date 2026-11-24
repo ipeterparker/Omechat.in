@@ -4,10 +4,7 @@ const crypto = require('crypto')
 const { Server } = require('socket.io')
 
 const PORT = process.env.PORT || 3001
-// Only the real site may talk to this server (set ALLOWED_ORIGINS on Render to override, comma separated)
-const ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((x) => x.trim()).filter(Boolean)
-  : ['https://omechat.in', 'https://www.omechat.in', 'http://localhost:3000']
+const ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*'
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' })
@@ -29,44 +26,11 @@ const byToken = new Map() // resume token -> member
 
 const rid = () => crypto.randomBytes(12).toString('hex')
 
-// Everyone gets the live count, but at most once every 3 seconds (not on every single connect/disconnect)
-let onlineTimer = null
-function scheduleOnline() {
-  if (onlineTimer) return
-  onlineTimer = setTimeout(() => {
-    onlineTimer = null
-    io.emit('online', { count: io.engine.clientsCount })
-  }, 3000)
-}
-
-// Simple per-connection rate limit: returns false when an event is sent too often (the event is then ignored)
-const rateState = new WeakMap()
-function allow(s, key, max, windowMs) {
-  const now = Date.now()
-  let st = rateState.get(s)
-  if (!st) rateState.set(s, (st = {}))
-  const e = st[key]
-  if (!e || now - e.t >= windowMs) {
-    st[key] = { t: now, n: 1 }
-    return true
-  }
-  e.n++
-  return e.n <= max
-}
-
-// Only an embedded image or a Google profile picture is allowed as a photo (any other link would show the viewer's IP to a stranger)
-function safePhoto(v) {
-  if (typeof v !== 'string' || v.length >= 150000) return undefined
-  if (/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v)) return v
-  if (v.length < 500 && /^https:\/\/[a-z0-9-]+\.googleusercontent\.com\/[^\s"'<>]*$/i.test(v)) return v
-  return undefined
-}
-
 const clean = (p = {}) => ({
   name: String(p.name || 'Anonymous').slice(0, 24),
   google: !!p.google,
-  photo: safePhoto(p.photo),
-  age: Number.isFinite(p.age) && p.age >= 0 && p.age <= 120 ? Math.round(p.age) : undefined,
+  photo: typeof p.photo === 'string' && p.photo.length < 150000 ? p.photo : undefined,
+  age: Number.isFinite(p.age) ? p.age : undefined,
   gender: p.gender === 'Male' || p.gender === 'Female' ? p.gender : undefined,
   country: typeof p.country === 'string' ? p.country.slice(0, 2).toUpperCase() : null,
 })
@@ -78,7 +42,7 @@ function removeFromQueue(s) {
 
 // ---- Banned-word block: "telegram" and "paid" (any style: symbols, spaces, numbers, short forms) -> 3 minute block ----
 const BLOCK_MS = 3 * 60 * 1000
-const BLOCK_BY_IP = process.env.BLOCK_BY_IP === '1' // default OFF: only the device that earned the block is blocked (set BLOCK_BY_IP=1 to also block by IP)
+const BLOCK_BY_IP = process.env.BLOCK_BY_IP !== '0' // set BLOCK_BY_IP=0 if many of your users share one IP (mobile networks)
 
 // Look-alike letters (small caps, Cyrillic, Greek...) -> plain letters
 const LOOKALIKE = {
@@ -168,7 +132,6 @@ function banKeys(s) {
   const keys = []
   const cid = s.handshake.auth && s.handshake.auth.cid
   if (typeof cid === 'string' && cid) keys.push('cid:' + cid.slice(0, 64))
-  else keys.push('sock:' + s.id) // no device id available: block at least this connection
   if (BLOCK_BY_IP) {
     const fwd = s.handshake.headers['x-forwarded-for']
     const ip = (typeof fwd === 'string' && fwd ? fwd.split(',')[0].trim() : s.handshake.address) || ''
@@ -241,8 +204,8 @@ function leavePeer(s, reason) {
 
 // ---- Text chat only: a banned word is blocked only when it is sent to many different strangers in a short time ----
 // (one now and then is fine and the chat goes on normally; video chat has no word block at all)
-const STRIKE_LIMIT = 7 // this many different strangers ...
-const STRIKE_WINDOW_MS = 5 * 60 * 1000 // ... within this time -> 3 minute block
+const STRIKE_LIMIT = 3 // this many different strangers ...
+const STRIKE_WINDOW_MS = 10 * 60 * 1000 // ... within this time -> 3 minute block
 const strikes = new Map() // person key -> [{ t, room }]
 setInterval(() => {
   const now = Date.now()
@@ -290,9 +253,7 @@ function stillBlocked(s) {
 function compatible(a, b) {
   if (a.data.mode !== b.data.mode) return false
   if (blocked.get(a.id)?.has(b.id) || blocked.get(b.id)?.has(a.id)) return false
-  // "same country only" counts only for a person whose country is known (otherwise they could never match)
-  const wants = (x) => x.data.sameCountry && x.data.profile.country
-  const same = wants(a) || wants(b)
+  const same = a.data.sameCountry || b.data.sameCountry
   if (same) {
     const ca = a.data.profile.country
     const cb = b.data.profile.country
@@ -324,12 +285,9 @@ function tryMatch(s) {
 
 io.on('connection', (socket) => {
   socket.data = { member: null, room: null, mode: 'text', sameCountry: false, profile: clean() }
-  socket.emit('online', { count: io.engine.clientsCount })
-  scheduleOnline()
-  { const left = banLeft(socket); if (left > 0) socket.emit('blocked', { ms: left }) }
+  io.emit('online', { count: io.engine.clientsCount })
 
   socket.on('join', (d = {}) => {
-    if (!allow(socket, 'join', 10, 10000)) return
     leavePeer(socket, 'left')
     removeFromQueue(socket)
     if (stillBlocked(socket)) return
@@ -340,10 +298,7 @@ io.on('connection', (socket) => {
     tryMatch(socket)
   })
 
-  socket.on('skip', () => {
-    if (!allow(socket, 'skip', 10, 10000)) return
-    leavePeer(socket, 'left')
-  })
+  socket.on('skip', () => leavePeer(socket, 'left'))
   socket.on('stop', () => {
     removeFromQueue(socket)
     leavePeer(socket, 'left')
@@ -351,46 +306,41 @@ io.on('connection', (socket) => {
 
   // A user whose connection dropped comes back with the token they got when matched.
   socket.on('resume', (d = {}) => {
-    if (!allow(socket, 'resume', 10, 10000)) return
     const m = byToken.get(String(d.token || ''))
     const room = m && m.room
     if (!m || !room || !rooms.has(room.id) || room.id !== d.id) {
       socket.emit('resume-failed')
       return
     }
-    if (m.sock === socket) {
-      // same connection that is already in this chat: nothing to resume, the chat is still alive
-      const o = room.members.find((x) => x !== m)
-      socket.emit('resumed', { peer: o.sock.data.profile, initiator: m.initiator })
-      flushPending(m, socket)
-      if (o.away) socket.emit('peer-away')
+    if (!m.away) {
+      // never marked away (e.g. quick tab switch): nothing to resume, the chat is still alive
+      if (m.sock === socket) {
+        const o = room.members.find((x) => x !== m)
+        socket.emit('resumed', { peer: o.sock.data.profile, initiator: m.initiator })
+        flushPending(m, socket)
+        if (o.away) socket.emit('peer-away')
+      } else socket.emit('resume-failed')
       return
     }
-    // A new connection with the right secret token takes over this seat. This also covers a quick net switch,
-    // where the server has not yet noticed that the old connection is dead (so the chat is not lost).
-    const wasAway = m.away
     clearTimeout(m.timer)
     m.timer = null
     m.away = false
     const old = m.sock
     m.sock = socket
     socket.data = { ...old.data, member: m, room }
-    old.data = { ...old.data, member: null, room: null } // the old connection no longer owns this chat
     if (old.id !== socket.id && blocked.has(old.id)) {
       blocked.set(socket.id, blocked.get(old.id))
       blocked.delete(old.id)
     }
-    if (old.connected) old.disconnect(true)
     const other = room.members.find((x) => x !== m)
     socket.emit('resumed', { peer: other.sock.data.profile, initiator: m.initiator })
     flushPending(m, socket)
     if (other.away) socket.emit('peer-away')
-    else if (wasAway && other.sock.connected) other.sock.emit('peer-back')
+    else if (other.sock.connected) other.sock.emit('peer-back')
   })
 
   socket.on('message', (d = {}) => {
     if (typeof d.text !== 'string') return
-    if (!allow(socket, 'message', 20, 10000)) return
     if (stillBlocked(socket)) return
     if ((hasBannedWord(d.text) || hasBannedWord(d.reply && d.reply.text)) && shouldBlock(socket)) return punish(socket, 'message')
     const out = { text: d.text.slice(0, 500) }
@@ -401,40 +351,26 @@ io.on('connection', (socket) => {
   })
   socket.on('edit', (d = {}) => {
     if (typeof d.text !== 'string' || typeof d.mid !== 'string') return
-    if (!allow(socket, 'edit', 20, 10000)) return
     if (stillBlocked(socket)) return
     if (hasBannedWord(d.text) && shouldBlock(socket)) return punish(socket, 'edit')
     relay(socket, 'edit', { mid: d.mid.slice(0, 24), text: d.text.slice(0, 500) })
   })
-  socket.on('typing', (on) => {
-    if (!allow(socket, 'typing', 20, 5000)) return
-    livePeer(socket)?.emit('typing', !!on)
-  })
-  socket.on('signal', (m) => {
-    if (!allow(socket, 'signal', 300, 10000)) return
-    livePeer(socket)?.emit('signal', m)
-  })
+  socket.on('typing', (on) => livePeer(socket)?.emit('typing', !!on))
+  socket.on('signal', (m) => livePeer(socket)?.emit('signal', m))
 
   // Friend requests: only between two Google users
   socket.on('friend-request', () => {
-    if (!allow(socket, 'friend', 5, 30000)) return
     const peer = livePeer(socket)
     if (peer && peer.data.profile.google && socket.data.profile.google) {
-      peer.data.friendFrom = socket.id // remember who asked, so only that person can get the answer
       peer.emit('friend-request', { fromId: socket.id, from: socket.data.profile })
     }
   })
   socket.on('friend-response', (d = {}) => {
-    if (!allow(socket, 'friend', 10, 30000)) return
-    // the answer goes only to the person who really asked this user, and only once
-    if (typeof d.to !== 'string' || socket.data.friendFrom !== d.to) return
-    socket.data.friendFrom = null
     const target = io.sockets.sockets.get(d.to)
     if (target && socket.data.profile.google) target.emit('friend-response', { accept: !!d.accept, from: socket.data.profile })
   })
 
   socket.on('report', (d = {}) => {
-    if (!allow(socket, 'report', 5, 60000)) return
     const other = otherMember(socket)
     if (!other) return
     const peer = other.sock
@@ -460,7 +396,7 @@ io.on('connection', (socket) => {
     } else if (!room) {
       blocked.delete(socket.id)
     }
-    scheduleOnline()
+    io.emit('online', { count: io.engine.clientsCount })
   })
 })
 
