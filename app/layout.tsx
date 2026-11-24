@@ -15,7 +15,6 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: 'Omechat — Text & Video Chat with Strangers',
   description: 'Omechat instantly pairs you with a random stranger for anonymous text or video chat.',
-  generator: 'v0.app',
   icons: {
     icon: [
       { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },

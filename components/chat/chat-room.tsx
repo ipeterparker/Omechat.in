@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ActiveCount } from '@/components/active-count'
 import { ChatBear } from '@/components/chat-bear'
 import {
-  clearIdentity, loadIdentity, loadProfile, saveIdentity, saveProfile, toPublic,
+  clearIdentity, loadGoogleIdentity, loadIdentity, loadProfile, saveIdentity, saveProfile, toPublic,
   type Identity, type Profile,
 } from '@/components/identity'
 import { MessagePanel } from './message-panel'
@@ -49,7 +49,7 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
     setThemeReady(true)
     // Video Chat needs a Google sign-in (popup). Text Chat has no login: anonymous by default.
     const existing = loadIdentity()
-    if (initialMode === 'video') setIdentity(existing && existing.type === 'google' ? existing : null)
+    if (initialMode === 'video') setIdentity(loadGoogleIdentity())
     else if (existing) setIdentity(existing)
     else {
       const anon: Identity = { type: 'anon' }

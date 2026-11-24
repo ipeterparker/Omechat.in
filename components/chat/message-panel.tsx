@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import type { PublicProfile } from '@/components/identity'
 import { countryName, flagOf } from './country'
 import { blockText, getSocket } from './socket'
+import { BlockNotice } from './block-notice'
 import { warnColor, type ChatTheme } from './themes'
 
 type Reply = { text: string; byYou: boolean }
@@ -27,6 +28,7 @@ type Props = {
 export function MessagePanel({ me, country, onSearchingChange, theme, sameCountry, onSameCountryChange }: Props) {
   const socket = getSocket()
   const [phase, setPhase] = useState<Phase>('idle')
+  const [blockUntil, setBlockUntil] = useState<number | null>(null)
   const [agreed, setAgreed] = useState(false)
   const warn = theme ? warnColor(theme) : '#ff5a5a'
   const [msgs, setMsgs] = useState<Msg[]>([])
@@ -193,6 +195,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     }
     // Blocked for 3 minutes (banned word): back to the start screen with a notice
     const onBlocked = (d: { ms: number }) => {
+      setBlockUntil(Date.now() + d.ms)
       resetLink()
       setTyping(false)
       setPeer(null)
@@ -352,6 +355,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const label = peer?.name ?? 'Stranger'
   return (
     <>
+      <BlockNotice until={blockUntil} onDone={() => setBlockUntil(null)} />
       <section aria-label="Messages" className={cn('relative flex min-h-0 flex-1 flex-col lg:rounded-3xl lg:border lg:border-[var(--bd,rgba(255,255,255,0.2))] lg:bg-[var(--tab,rgba(30,35,48,0.9))] lg:p-6', !agreed && 'overflow-y-auto')}>
         {agreed && (phase === 'idle' || phase === 'ended') && (
           <label className="flex w-fit lg:hidden cursor-pointer items-center gap-2 whitespace-nowrap pb-2 pl-1 text-[11px] font-semibold">

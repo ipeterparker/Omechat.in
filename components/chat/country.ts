@@ -8,8 +8,6 @@ const TZ: Record<string, string> = {
   'America/New_York': 'US', 'America/Chicago': 'US', 'America/Los_Angeles': 'US', 'Australia/Sydney': 'AU',
 }
 
-export const OTHER_COUNTRIES = ['US', 'GB', 'PK', 'BD', 'NP', 'AE', 'CA', 'AU', 'DE', 'ID', 'PH', 'NG']
-
 export function flagOf(code?: string | null) {
   if (!code || code.length !== 2) return '\u{1F30D}'
   return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)))

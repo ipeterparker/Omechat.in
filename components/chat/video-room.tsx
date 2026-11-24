@@ -9,6 +9,7 @@ import { addFriend, type Identity, type PublicProfile } from '@/components/ident
 import { cn } from '@/lib/utils'
 import { flagOf } from './country'
 import { blockText, getSocket } from './socket'
+import { BlockNotice } from './block-notice'
 
 type Phase = 'idle' | 'searching' | 'connected'
 type Msg = { id: number; from: 'you' | 'peer'; text: string }
@@ -71,6 +72,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const [toast, setToast] = useState('')
   const [reqs, setReqs] = useState<Req[]>([])
   const [banner, setBanner] = useState<Req | null>(null)
+  const [blockUntil, setBlockUntil] = useState<number | null>(null)
   const [camError, setCamError] = useState('')
   // Reconnect: small chip with a 29s timer when the stranger drops, "reconnected" when they return
   const [status, setStatus] = useState<null | { kind: 'away' } | { kind: 'back' } | { kind: 'offline' }>(null)
@@ -86,6 +88,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const streamRef = useRef<MediaStream | null>(null)
   const pcRef = useRef<RTCPeerConnection | null>(null)
   const pendingIce = useRef<RTCIceCandidateInit[]>([])
+  const aliveRef = useRef(true)
   const timers = useRef<number[]>([])
   const typingOff = useRef<number | undefined>(undefined)
   const sameRef = useRef(same)
@@ -123,6 +126,11 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     try {
       streamRef.current?.getTracks().forEach((t) => t.stop())
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face }, audio: true })
+      if (!aliveRef.current) {
+        // the page was closed while the permission was being asked: do not leave the camera on
+        s.getTracks().forEach((t) => t.stop())
+        return
+      }
       s.getAudioTracks().forEach((t) => (t.enabled = micRef.current))
       s.getVideoTracks().forEach((t) => (t.enabled = camRef.current))
       streamRef.current = s
@@ -145,8 +153,10 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   }, [])
 
   useEffect(() => {
+    aliveRef.current = true
     void startCamera('user')
     return () => {
+      aliveRef.current = false
       streamRef.current?.getTracks().forEach((t) => t.stop())
       closePc()
       timers.current.forEach((id) => clearTimeout(id))
@@ -198,27 +208,32 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       setPhase('connected')
       const pc = makePc()
       if (d.initiator) {
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-        socket.emit('signal', { type: 'offer', data: offer })
+        try {
+          const offer = await pc.createOffer()
+          await pc.setLocalDescription(offer)
+          socket.emit('signal', { type: 'offer', data: offer })
+        } catch {}
       }
     }
     const onSignal = async (m: { type: string; data: RTCSessionDescriptionInit & RTCIceCandidateInit }) => {
       const pc = pcRef.current
-      if (!pc) return
-      if (m.type === 'offer') {
-        await pc.setRemoteDescription(m.data)
-        await flush(pc)
-        const answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-        socket.emit('signal', { type: 'answer', data: answer })
-      } else if (m.type === 'answer') {
-        await pc.setRemoteDescription(m.data)
-        await flush(pc)
-      } else if (m.type === 'ice') {
-        if (pc.remoteDescription) await pc.addIceCandidate(m.data)
-        else pendingIce.current.push(m.data)
-      }
+      if (!pc || !m) return
+      // a bad or late message from the other side must not break the call
+      try {
+        if (m.type === 'offer') {
+          await pc.setRemoteDescription(m.data)
+          await flush(pc)
+          const answer = await pc.createAnswer()
+          await pc.setLocalDescription(answer)
+          socket.emit('signal', { type: 'answer', data: answer })
+        } else if (m.type === 'answer') {
+          await pc.setRemoteDescription(m.data)
+          await flush(pc)
+        } else if (m.type === 'ice') {
+          if (pc.remoteDescription) await pc.addIceCandidate(m.data)
+          else pendingIce.current.push(m.data)
+        }
+      } catch {}
     }
     const onMessage = (d: { text: string }) => {
       setTyping(false)
@@ -278,6 +293,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     }
     // Blocked for 3 minutes (banned word)
     const onBlocked = (d: { ms: number }) => {
+      setBlockUntil(Date.now() + d.ms)
       resumeRef.current = null
       clearAway()
       setStatus(null)
@@ -422,6 +438,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-black text-white lg:grid lg:grid-cols-[1fr_1fr_minmax(320px,26%)] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-3 lg:p-3">
+      <BlockNotice until={blockUntil} onDone={() => setBlockUntil(null)} />
       {/* stranger (top half) */}
       <div className="relative flex-1 overflow-hidden bg-[#0b1020] lg:min-h-0 lg:rounded-2xl">
         <video ref={remoteRef} autoPlay playsInline muted={!sound} className={cn('absolute inset-0 size-full object-cover', phase !== 'connected' && 'hidden')} />

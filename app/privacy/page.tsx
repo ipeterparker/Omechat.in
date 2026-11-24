@@ -19,7 +19,7 @@ export default function PrivacyPage() {
         long as needed for moderation.
       </p>
       <h2>Contact</h2>
-      <p>Questions? Email support@omechat.app.</p>
+      <p>Questions? Email support@omechat.in.</p>
     </LegalPage>
   )
 }

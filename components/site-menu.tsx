@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Avatar } from '@/components/avatar'
-import { loadIdentity, loadProfile, type Identity, type Profile } from '@/components/identity'
+import { loadGoogleIdentity, loadIdentity, loadProfile, type Identity, type Profile } from '@/components/identity'
 import { cn } from '@/lib/utils'
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void }
@@ -20,7 +20,7 @@ export function SiteMenu({ open, onOpenChange }: Props) {
       setShown(false)
       return
     }
-    setIdentity(loadIdentity())
+    setIdentity(loadGoogleIdentity() ?? loadIdentity())
     setProfile(loadProfile())
     const id = requestAnimationFrame(() => setShown(true))
     return () => cancelAnimationFrame(id)

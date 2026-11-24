@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Camera, LogOut, Mail } from 'lucide-react'
 import { Avatar } from '@/components/avatar'
 import {
-  ageFromDob, clearAll, clearIdentity, fileToDataUrl, loadFriends, loadIdentity, loadProfile, saveProfile,
+  ageFromDob, clearAll, clearIdentity, fileToDataUrl, loadFriends, loadGoogleIdentity, loadIdentity, loadProfile, saveProfile,
   type Gender, type Identity, type Profile,
 } from '@/components/identity'
 import { flagOf, countryName, useUserCountry } from '@/components/chat/country'
@@ -23,7 +23,7 @@ export function ProfileView() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    setIdentity(loadIdentity())
+    setIdentity(loadGoogleIdentity() ?? loadIdentity())
     const prof = loadProfile()
     setP(prof)
     setInterests((prof?.interests ?? []).join(', '))
