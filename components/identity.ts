@@ -35,6 +35,11 @@ function read<T>(store: Storage, key: string): T | null {
 export function loadIdentity(): Identity | null {
   return read<Identity>(sessionStorage, K_ANON) ?? read<Identity>(localStorage, K_GOOGLE)
 }
+// The saved Google sign-in only (video chat needs this, even if this tab has an anonymous text-chat identity)
+export function loadGoogleIdentity(): Identity | null {
+  const g = read<Identity>(localStorage, K_GOOGLE)
+  return g && g.type === 'google' ? g : null
+}
 export function saveIdentity(i: Identity) {
   try {
     if (i.type === 'google') localStorage.setItem(K_GOOGLE, JSON.stringify(i))
