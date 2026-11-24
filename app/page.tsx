@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { SiteHeader } from '@/components/site-header'
 import { Hero } from '@/components/hero'
 import { About } from '@/components/about'
-import { AdBanner } from '@/components/ad-banner'
 import { HomeBannerSmall, HomeBannerWide, HomeNativeAd } from '@/components/ads'
 import { Features } from '@/components/features'
 import { Safety, SiteFooter } from '@/components/safety'
@@ -33,7 +32,6 @@ export default function Page() {
             <HomeBannerSmall />
             <About />
           </div>
-          <AdBanner />
         </div>
         <HomeBannerWide />
         <HomeNativeAd />

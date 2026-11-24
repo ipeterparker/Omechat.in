@@ -360,14 +360,15 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           </label>
         )}
 
-        {phase === 'idle' && !agreed ? (
-          <div className="flex flex-1 items-center justify-center">
+        {phase === 'idle' ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
             <ChatIdleAd />
-          </div>
-        ) : phase === 'idle' ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-            <p className="text-2xl font-bold" style={{ color: warn }}>You must be 18+</p>
-            <p className="text-sm opacity-80">No explicit content or harassment allowed. Click Start below!</p>
+            {agreed && (
+              <div className="flex flex-col items-center gap-1">
+                <p className="text-xl font-bold" style={{ color: warn }}>You must be 18+</p>
+                <p className="text-sm opacity-80">No explicit content or harassment allowed. Click Start below!</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-auto flex min-h-0 flex-col gap-2.5 overflow-y-auto px-1 pb-1" aria-live="polite">
