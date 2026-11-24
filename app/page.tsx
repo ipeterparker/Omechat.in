@@ -3,6 +3,7 @@ import { SiteHeader } from '@/components/site-header'
 import { Hero } from '@/components/hero'
 import { About } from '@/components/about'
 import { AdBanner } from '@/components/ad-banner'
+import { HomeBannerSmall, HomeBannerWide, HomeNativeAd } from '@/components/ads'
 import { Features } from '@/components/features'
 import { Safety, SiteFooter } from '@/components/safety'
 import { SeoSection } from '@/components/seo-section'
@@ -29,10 +30,13 @@ export default function Page() {
         <div className="mx-auto w-full lg:grid lg:max-w-7xl lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-14 lg:px-8 lg:pt-8 2xl:max-w-[88rem]">
           <div>
             <Hero />
+            <HomeBannerSmall />
             <About />
           </div>
           <AdBanner />
         </div>
+        <HomeBannerWide />
+        <HomeNativeAd />
         <Features />
         <Safety />
         <SeoSection />

@@ -1,5 +1,6 @@
 'use client'
 
+import { ChatIdleAd } from '@/components/ads'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as RPointerEvent } from 'react'
 import { cn } from '@/lib/utils'
 import type { PublicProfile } from '@/components/identity'
@@ -360,7 +361,9 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
         )}
 
         {phase === 'idle' && !agreed ? (
-          <div className="flex-1" aria-hidden="true" />
+          <div className="flex flex-1 items-center justify-center">
+            <ChatIdleAd />
+          </div>
         ) : phase === 'idle' ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
             <p className="text-2xl font-bold" style={{ color: warn }}>You must be 18+</p>
