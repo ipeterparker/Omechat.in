@@ -40,115 +40,6 @@ function removeFromQueue(s) {
   if (i >= 0) queue.splice(i, 1)
 }
 
-// ---- Banned-word block: "telegram" and "paid" (any style: symbols, spaces, numbers, short forms) -> 3 minute block ----
-const BLOCK_MS = 3 * 60 * 1000
-const BLOCK_BY_IP = process.env.BLOCK_BY_IP !== '0' // set BLOCK_BY_IP=0 if many of your users share one IP (mobile networks)
-
-// Look-alike letters (small caps, Cyrillic, Greek...) -> plain letters
-const LOOKALIKE = {
-  'ᴛ': 't', 'ᴇ': 'e', 'ʟ': 'l', 'ɢ': 'g', 'ʀ': 'r', 'ᴀ': 'a', 'ᴍ': 'm', 'ᴘ': 'p', 'ɪ': 'i', 'ᴅ': 'd',
-  'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'т': 't', 'і': 'i', 'ӏ': 'l', 'м': 'm', 'ԁ': 'd', 'ɡ': 'g',
-  'α': 'a', 'ε': 'e', 'ο': 'o', 'ρ': 'p', 'τ': 't', 'ι': 'i', 'μ': 'm', 'ł': 'l', 'đ': 'd', 'ø': 'o',
-  '€': 'e', 'є': 'e', '£': 'e', '¢': 'c', '$': 's', 'я': 'r', '®': 'r',
-  'ᴠ': 'v', 'ᴄ': 'c', 'ꜱ': 's', 'ᴏ': 'o', 'ᴡ': 'w',
-}
-const LOOKALIKE_RE = new RegExp('[' + Object.keys(LOOKALIKE).join('') + ']', 'g')
-
-function normalizeText(s) {
-  return String(s)
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '') // accents
-    .replace(/[​-‏⁠﻿­]/g, '') // invisible characters
-    .toLowerCase()
-    .replace(LOOKALIKE_RE, (c) => LOOKALIKE[c] || c)
-}
-
-// One letter -> the characters that can stand for it (a=4/@, e=3, i=1/!/|, l=1/|/!, t=7/+, g=9/6), repeats allowed.
-const CLS = { t: '[t7+]', e: '[e3€£]', l: '[l1|!]', g: '[g96]', r: 'r', a: '[a4@]', m: 'm', p: 'p', i: '[i1!|]', d: 'd' }
-const SEP = '[^a-z0-9@|!+]' // spaces, dots, dashes, underscores, emoji ... anything between letters
-const L = (c, optional = false) => (optional ? `(?:${CLS[c]}+${SEP}*)*` : `${CLS[c]}+${SEP}*`)
-
-const PATTERNS = [
-  // telegram, also tlgrm / telgram / teleegram / t.e.l.e.g.r.a.m / t e l e g r a m
-  new RegExp(L('t') + L('e', true) + L('l') + L('e', true) + L('g') + L('r') + L('a', true) + CLS.m + '+', 'g'),
-  // short forms: "tg", "t.g", "t.me"
-  /(?<![a-z0-9])t[.\-_*]{0,2}g(?![a-z0-9])/g,
-  /(?<![a-z0-9])t\s?\.\s?me(?![a-z])/g,
-]
-// "paid" is only blocked together with service / promotion / ads (so "I paid", "unpaid", "prepaid" are fine).
-// Works with symbols too: p@id s3rvice, p.a.i.d promo, paid s€rvices, "services are paid" ...
-const PAID = '(?<![a-z])' + L('p') + L('a') + L('i') + 'd+'
-const PAID_END = PAID + '(?![a-z])'
-const CTX = '(?:' + [
-  's[e3€£a4@]*r+[vw]+[i1!|]*[cs5]+[e3€£]*s*[a-z]*', // service(s), servis, srvc, sarvice
-  's' + SEP + '*[e3€£a4@]+' + SEP + '*r+' + SEP + '*[vw]+' + SEP + '*[i1!|]+' + SEP + '*[cs5]+' + SEP + '*[e3€£]*', // s e r v i c e
-  'p+r+[o0]+m+[o0][a-z]*', // promo, promotion, promote
-  '[a4@]+d+s?(?![a-z0-9])', // ad, ads
-  '[a4@]+d+v[a-z]*', // advert, advertising, advertisement
-].join('|') + ')'
-const CTX_START = '(?<![a-z])' + CTX
-const LINK = '(?:' + SEP + '+(?:is|are|ka|ki|ke|hai|hain|h|only|available|wala|wali|me|mein)(?![a-z]))?'
-const PAID_PATTERNS = [
-  new RegExp(PAID + LINK + SEP + '*' + CTX, 'g'), // paid service
-  new RegExp(CTX_START + LINK + SEP + '*' + PAID_END, 'g'), // service paid / services are paid
-]
-// Russian spelling of telegram
-const CYRILLIC_TELEGRAM = /т\s*[еe]\s*л\s*[еe]\s*г\s*р\s*[аa]\s*м/i
-// Hindi spelling of telegram
-const DEVANAGARI_TELEGRAM = /ट[ेि]?ल[ीिे]?ग्?र[ाैे]?म/
-
-function hasBannedWord(text) {
-  if (typeof text !== 'string' || !text) return false
-  if (DEVANAGARI_TELEGRAM.test(text.replace(/[\s​-‏⁠﻿]/g, ''))) return true
-  if (CYRILLIC_TELEGRAM.test(text)) return true
-  const t = normalizeText(text)
-  for (const re of PAID_PATTERNS) {
-    re.lastIndex = 0
-    if (re.test(t)) return true
-  }
-  for (const re of PATTERNS) {
-    re.lastIndex = 0
-    let m
-    while ((m = re.exec(t))) {
-      const hit = m[0]
-      // Letters split by spaces/symbols must stand alone (so "swap aid" or "tell grams" is not caught)
-      const split = new RegExp(SEP).test(hit)
-      const before = t[m.index - 1] || ''
-      const after = t[m.index + hit.length] || ''
-      if (!split || (!/[a-z]/.test(before) && !/[a-z]/.test(after))) return true
-      if (hit.length === 0) re.lastIndex++
-    }
-  }
-  return false
-}
-
-const bans = new Map() // "cid:..." / "ip:..." -> time (ms) until which that person is blocked
-setInterval(() => {
-  const now = Date.now()
-  for (const [k, until] of bans) if (until <= now) bans.delete(k)
-}, 60 * 1000).unref()
-
-function banKeys(s) {
-  const keys = []
-  const cid = s.handshake.auth && s.handshake.auth.cid
-  if (typeof cid === 'string' && cid) keys.push('cid:' + cid.slice(0, 64))
-  if (BLOCK_BY_IP) {
-    const fwd = s.handshake.headers['x-forwarded-for']
-    const ip = (typeof fwd === 'string' && fwd ? fwd.split(',')[0].trim() : s.handshake.address) || ''
-    if (ip) keys.push('ip:' + ip)
-  }
-  return keys
-}
-
-// Milliseconds still left on this person's block (0 = not blocked)
-function banLeft(s) {
-  const now = Date.now()
-  let left = 0
-  for (const k of banKeys(s)) left = Math.max(left, (bans.get(k) || 0) - now)
-  return Math.max(0, left)
-}
-// ---- end banned-word block ----
-
 // The other person in this socket's chat (may be away), or null.
 function otherMember(s) {
   const m = s.data.member
@@ -202,54 +93,6 @@ function leavePeer(s, reason) {
   if (room) destroyRoom(room, reason, s.data.member)
 }
 
-// ---- Text chat only: a banned word is blocked only when it is sent to many different strangers in a short time ----
-// (one now and then is fine and the chat goes on normally; video chat has no word block at all)
-const STRIKE_LIMIT = 3 // this many different strangers ...
-const STRIKE_WINDOW_MS = 10 * 60 * 1000 // ... within this time -> 3 minute block
-const strikes = new Map() // person key -> [{ t, room }]
-setInterval(() => {
-  const now = Date.now()
-  for (const [k, list] of strikes) {
-    const keep = list.filter((x) => now - x.t < STRIKE_WINDOW_MS)
-    if (keep.length) strikes.set(k, keep)
-    else strikes.delete(k)
-  }
-}, 60 * 1000).unref()
-
-// Returns true when this banned word should lead to a block now.
-function shouldBlock(s) {
-  if (s.data.mode === 'video') return false // video chat: no word block
-  const cid = s.handshake.auth && s.handshake.auth.cid
-  const key = typeof cid === 'string' && cid ? 'cid:' + cid.slice(0, 64) : 'sock:' + s.id
-  const now = Date.now()
-  const list = (strikes.get(key) || []).filter((x) => now - x.t < STRIKE_WINDOW_MS)
-  const room = s.data.room ? s.data.room.id : 'none'
-  if (!list.some((x) => x.room === room)) list.push({ t: now, room }) // same stranger twice counts once
-  if (new Set(list.map((x) => x.room)).size >= STRIKE_LIMIT) {
-    strikes.delete(key)
-    return true
-  }
-  strikes.set(key, list)
-  return false
-}
-
-// Banned word used: end their chat, take them out of the queue and block them for 3 minutes (every time it happens again, a fresh 3 minutes).
-function punish(s, where) {
-  const until = Date.now() + BLOCK_MS
-  for (const k of banKeys(s)) bans.set(k, until)
-  removeFromQueue(s)
-  leavePeer(s, 'left')
-  console.log('BLOCKED', new Date().toISOString(), where, banKeys(s).join(' '))
-  s.emit('blocked', { ms: BLOCK_MS })
-}
-// True (and tells them) if this person is still inside a block.
-function stillBlocked(s) {
-  const left = banLeft(s)
-  if (left <= 0) return false
-  s.emit('blocked', { ms: left })
-  return true
-}
-
 function compatible(a, b) {
   if (a.data.mode !== b.data.mode) return false
   if (blocked.get(a.id)?.has(b.id) || blocked.get(b.id)?.has(a.id)) return false
@@ -290,7 +133,6 @@ io.on('connection', (socket) => {
   socket.on('join', (d = {}) => {
     leavePeer(socket, 'left')
     removeFromQueue(socket)
-    if (stillBlocked(socket)) return
     socket.data.mode = d.mode === 'video' ? 'video' : 'text'
     socket.data.sameCountry = !!d.sameCountry
     socket.data.profile = clean(d.profile)
@@ -341,8 +183,6 @@ io.on('connection', (socket) => {
 
   socket.on('message', (d = {}) => {
     if (typeof d.text !== 'string') return
-    if (stillBlocked(socket)) return
-    if ((hasBannedWord(d.text) || hasBannedWord(d.reply && d.reply.text)) && shouldBlock(socket)) return punish(socket, 'message')
     const out = { text: d.text.slice(0, 500) }
     if (typeof d.mid === 'string') out.mid = d.mid.slice(0, 24)
     const r = d.reply
@@ -351,8 +191,6 @@ io.on('connection', (socket) => {
   })
   socket.on('edit', (d = {}) => {
     if (typeof d.text !== 'string' || typeof d.mid !== 'string') return
-    if (stillBlocked(socket)) return
-    if (hasBannedWord(d.text) && shouldBlock(socket)) return punish(socket, 'edit')
     relay(socket, 'edit', { mid: d.mid.slice(0, 24), text: d.text.slice(0, 500) })
   })
   socket.on('typing', (on) => livePeer(socket)?.emit('typing', !!on))

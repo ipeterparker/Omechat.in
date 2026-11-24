@@ -8,7 +8,7 @@ import { Avatar } from '@/components/avatar'
 import { addFriend, type Identity, type PublicProfile } from '@/components/identity'
 import { cn } from '@/lib/utils'
 import { flagOf } from './country'
-import { blockText, getSocket } from './socket'
+import { getSocket } from './socket'
 
 type Phase = 'idle' | 'searching' | 'connected'
 type Msg = { id: number; from: 'you' | 'peer'; text: string }
@@ -276,19 +276,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
         flash(`${d.from.name} is now your friend`)
       }
     }
-    // Blocked for 3 minutes (banned word)
-    const onBlocked = (d: { ms: number }) => {
-      resumeRef.current = null
-      clearAway()
-      setStatus(null)
-      closePc()
-      setPeer(null)
-      setMsgs([])
-      setTyping(false)
-      setPhase('idle')
-      flash(`You are blocked for ${blockText(d.ms)}. Telegram and paid promotions are not allowed here.`, 6000)
-    }
-    socket.on('blocked', onBlocked)
     socket.on('matched', onMatched)
     socket.on('signal', onSignal)
     socket.on('message', onMessage)
@@ -303,7 +290,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     socket.on('friend-request', onRequest)
     socket.on('friend-response', onResponse)
     return () => {
-      socket.off('blocked', onBlocked)
       socket.off('matched', onMatched)
       socket.off('signal', onSignal)
       socket.off('message', onMessage)
