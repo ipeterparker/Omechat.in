@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Form
 import { cn } from '@/lib/utils'
 import type { PublicProfile } from '@/components/identity'
 import { countryName, flagOf } from './country'
-import { getSocket } from './socket'
+import { blockText, getSocket } from './socket'
 import { warnColor, type ChatTheme } from './themes'
 
 type Reply = { text: string; byYou: boolean }
@@ -191,6 +191,17 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       start()
       add('notice', 'You were away for too long, so that chat ended. Searching for a new stranger...')
     }
+    // Blocked for 3 minutes (banned word): back to the start screen with a notice
+    const onBlocked = (d: { ms: number }) => {
+      resetLink()
+      setTyping(false)
+      setPeer(null)
+      setConfirmSkip(false)
+      setStatus(null)
+      setMsgs([{ id: Date.now(), from: 'notice', text: `You are blocked for ${blockText(d.ms)}. Telegram and paid promotions are not allowed here. Please try again after that.` }])
+      setPhase('idle')
+    }
+    socket.on('blocked', onBlocked)
     socket.on('matched', onMatched)
     socket.on('peer-away', onAway)
     socket.on('peer-back', onBack)
@@ -203,6 +214,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     socket.on('resumed', onResumed)
     socket.on('resume-failed', onResumeFailed)
     return () => {
+      socket.off('blocked', onBlocked)
       socket.off('matched', onMatched)
       socket.off('peer-away', onAway)
       socket.off('peer-back', onBack)
