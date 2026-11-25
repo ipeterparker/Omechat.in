@@ -540,7 +540,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           }}
           maxLength={500}
           placeholder="Type a message..."
-          className="h-12 min-w-0 flex-1 resize-none overflow-hidden rounded-2xl border bg-card px-3.5 py-3 text-[13.6px] leading-6 lg:h-14 lg:px-5 lg:py-3.5 lg:text-[15.3px] lg:leading-7 outline-none backdrop-blur-xl placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]"
+          className="h-12 min-w-0 flex-1 resize-none overflow-hidden rounded-2xl border bg-card px-3.5 py-3 text-[15.6px] leading-6 lg:h-14 lg:px-5 lg:py-3.5 lg:text-[17.6px] lg:leading-7 outline-none backdrop-blur-xl placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring group-data-[themed]:border-[var(--bd)] group-data-[themed]:bg-[var(--tab)]"
         />
         <button
           type="submit"
