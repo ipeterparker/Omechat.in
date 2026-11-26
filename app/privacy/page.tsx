@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { LegalPage } from '@/components/legal-page'
 
-export const metadata: Metadata = { title: 'Privacy Policy \u2014 Omechat' }
+export const metadata: Metadata = { title: 'Privacy Policy \u2014 Omechat', alternates: { canonical: '/privacy' } }
 
 export default function PrivacyPage() {
   return (

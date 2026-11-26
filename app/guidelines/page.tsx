@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { LegalPage } from '@/components/legal-page'
 
-export const metadata: Metadata = { title: 'Community Rules \u2014 Omechat' }
+export const metadata: Metadata = { title: 'Community Rules \u2014 Omechat', alternates: { canonical: '/guidelines' } }
 
 export default function GuidelinesPage() {
   return (

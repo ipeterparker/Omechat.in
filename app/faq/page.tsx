@@ -5,6 +5,7 @@ import { HOME_FAQ, OMEGLE_FAQ } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'FAQ \u2014 Omechat',
+  alternates: { canonical: '/faq' },
   description: 'Answers to common questions about Omechat: signup, Same Country, text and video chat, safety and the Omegle alternative.',
 }
 

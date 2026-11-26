@@ -3,6 +3,7 @@ import { LegalPage } from '@/components/legal-page'
 
 export const metadata: Metadata = {
   title: 'Safety Tips \u2014 Omechat',
+  alternates: { canonical: '/safety' },
   description: 'Simple safety tips for chatting with strangers online: protect your privacy, use Skip and Report, and avoid scams.',
 }
 

@@ -3,6 +3,7 @@ import { LegalPage } from '@/components/legal-page'
 
 export const metadata: Metadata = {
   title: 'About Us \u2014 Omechat',
+  alternates: { canonical: '/about' },
   description: 'Omechat is a free random chat website for text and video chat with strangers. Learn what Omechat is and how it works.',
 }
 
