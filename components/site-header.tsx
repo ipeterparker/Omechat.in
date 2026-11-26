@@ -34,7 +34,7 @@ export function SiteHeader() {
           onClick={() => setOpen(true)}
           aria-expanded={open}
           aria-controls="site-menu"
-          className="flex size-12 shrink-0 items-center justify-center rounded-full border bg-card/70 backdrop-blur-xl transition-colors hover:bg-card lg:hidden"
+          className="flex size-12 shrink-0 items-center justify-center rounded-full lg:hidden"
         >
           <Menu className="size-5" aria-hidden="true" />
           <span className="sr-only">Open menu</span>

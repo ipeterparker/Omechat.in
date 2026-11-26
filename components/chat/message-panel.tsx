@@ -656,8 +656,9 @@ function MsgBubble({ m, label, cls, onReply, onHold }: { m: Msg; label: string; 
         )}
       >
         {m.reply && (
-          <div className="mb-1 line-clamp-2 border-l-2 border-current pl-2 text-xs opacity-75">
-            <span className="font-semibold">{m.reply.byYou ? 'You' : label}</span>: {m.reply.text}
+          <div className="mb-1.5 rounded-lg border-l-4 border-current bg-current/15 px-2.5 py-1.5">
+            <div className="text-[13.5px] font-bold leading-snug">{m.reply.byYou ? 'You' : label}</div>
+            <div className="line-clamp-2 text-sm leading-snug opacity-90">{m.reply.text}</div>
           </div>
         )}
         <span className={mine ? 'font-semibold' : 'font-semibold text-[#f87171]'}>{mine ? 'You' : label}</span>: {m.text}

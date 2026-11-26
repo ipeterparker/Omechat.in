@@ -135,7 +135,7 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
               <ChatBear running={searching} dark={theme.kind !== 'white'} />
               Omechat
             </div>
-            <div className={`flex h-[38px] items-center gap-2 rounded-full px-[18px] text-sm font-semibold lg:-mr-2 lg:justify-self-end ${TAB}`}>
+            <div className="flex h-[38px] items-center gap-2 rounded-full px-[18px] text-sm font-semibold lg:-mr-2 lg:justify-self-end">
               <span className="relative flex size-2.5" aria-hidden="true">
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-online opacity-60" />
                 <span className="relative inline-flex size-2.5 rounded-full bg-online" />
