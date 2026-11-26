@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { JsonLd } from '@/components/json-ld'
 import { LegalPage } from '@/components/legal-page'
-import { HOME_FAQ, OMEGLE_FAQ } from '@/lib/seo'
+import { HOME_FAQ, OMEGLE_FAQ, SAFETY_FAQ } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'FAQ \u2014 Omechat',
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 export default function FaqPage() {
-  const faq = [...HOME_FAQ, ...OMEGLE_FAQ]
+  const faq = [...HOME_FAQ, ...SAFETY_FAQ, ...OMEGLE_FAQ]
   const ld = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
