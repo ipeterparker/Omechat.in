@@ -25,12 +25,6 @@ export default function SafetyPage() {
         Anyone you talk to can take a screenshot or record the screen of their own device, and Omechat cannot stop that. Assume that
         anything you say or show on camera could be saved, so never show your face, ID, or private details if you are not comfortable with that.
       </p>
-      <h2>Your IP address and location</h2>
-      <p>
-        Video chat uses a direct peer-to-peer connection, which means the other person&apos;s device may be able to see your IP address, as in most
-        video calling apps. An IP address gives only a rough area, not your exact home address. If you want extra privacy, use a trusted VPN and
-        never tell a stranger where you live.
-      </p>
       <h2>Scams and blackmail (sextortion)</h2>
       <p>
         Some people use random chat to scare or pressure others. Warning signs are requests for money or gift cards, asking you to move to another
