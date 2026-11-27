@@ -68,8 +68,8 @@ const LIGHT_TOKENS: Record<string, string> = {
 export const darkTokensStyle = DARK_TOKENS as CSSProperties
 
 export function themeStyle(t: ChatTheme): CSSProperties {
-  if (t.kind === 'black') return { ...DARK_TOKENS, background: 'oklch(0.13 0.008 260)', color: 'oklch(0.97 0.005 260)' } as CSSProperties
-  const s: Record<string, string> = { ...(t.kind === 'white' ? LIGHT_TOKENS : DARK_TOKENS), '--bd': t.kind === 'white' ? '#cbd5e1' : 'rgba(255,255,255,0.2)' }
+  if (t.kind === 'black') return { ...DARK_TOKENS, colorScheme: 'dark', background: 'oklch(0.13 0.008 260)', color: 'oklch(0.97 0.005 260)' } as CSSProperties
+  const s: Record<string, string> = { ...(t.kind === 'white' ? LIGHT_TOKENS : DARK_TOKENS), '--bd': t.kind === 'white' ? '#cbd5e1' : 'rgba(255,255,255,0.2)', colorScheme: t.kind === 'white' ? 'light' : 'dark' }
   if (t.kind === 'white') {
     Object.assign(s, {
       '--sent': '#2563eb', '--sent-ink': '#ffffff', '--recv': '#e2e8f0', '--recv-ink': '#0f172a',

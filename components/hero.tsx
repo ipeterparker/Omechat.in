@@ -81,7 +81,7 @@ export function Hero() {
 
       <p className="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
         <span aria-hidden="true">{'\u{1F512}'}</span>
-        {'Encrypted & Moderated \u2014 Keep the vibe clean.'}
+        {'Text chat is free & anonymous \u2014 Keep the vibe clean.'}
       </p>
     </section>
   )

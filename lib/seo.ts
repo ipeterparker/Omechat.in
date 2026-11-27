@@ -16,7 +16,7 @@ export type SeoPage = {
 
 export const HOME_TITLE = 'Omegle : Talk to Strangers! | Omechat'
 export const HOME_DESCRIPTION =
-  'Best Omegle alternative for random video chat and text chat with strangers worldwide. Start in one tap. Free, no signup, instant matching and 24/7 moderation.'
+  'Best Omegle alternative for random video chat and text chat with strangers worldwide. Start in one tap. Free, no signup for text chat, instant matching and a one-tap Skip.'
 
 export const KEYWORDS = [
   'Omechat', 'omechat.in', 'Omechat Omegle', 'Omechat video chat', 'Omechat text chat', 'omechat alternative', 'omechat chat',
@@ -48,7 +48,7 @@ export const HOME_FAQ: FAQ[] = [
 ]
 
 export const SAFETY_FAQ: FAQ[] = [
-  { q: 'Is Omechat safe?', a: 'Omechat has safety tools: Skip leaves any chat in one tap, Report sends a chat to our moderators, and rude users can be blocked. But like every random chat website, you talk to real strangers and no site can guarantee that every user is well behaved, so keep your personal details private and use Skip and Report whenever something feels wrong.' },
+  { q: 'Is Omechat safe?', a: 'Omechat has safety tools: Skip leaves any chat in one tap, Report lets you flag a user in video chat, and spammers are blocked automatically. But like every random chat website, you talk to real strangers and no site can guarantee that every user is well behaved, so keep your personal details private and use Skip and Report whenever something feels wrong.' },
   { q: 'Can the other person record my video chat?', a: 'Yes, it is possible. Any person can take a screenshot or record the screen on their own device and Omechat cannot stop that. Do not show your face, documents or private things if you are not comfortable with them being saved.' },
   { q: 'What should I do if someone asks for money or threatens me?', a: 'Stop replying, do not send money, photos or videos, take a screenshot as proof, use Report and tell a trusted person. In India you can report cyber crime at cybercrime.gov.in or call 1930.' },
   { q: 'Is Omechat safe for minors?', a: 'No. Omechat is for people aged 18 and above only. You must confirm your age before you start, but we do not check ID, so parents and guardians should make sure children do not use random chat websites.' },

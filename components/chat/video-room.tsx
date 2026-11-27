@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
-  Check, ChevronRight, ChevronsRight, Flag, Mic, MicOff, RefreshCw, Settings, Sparkles, UserPlus, Video, VideoOff, X,
+  Check, ChevronRight, ChevronsRight, Flag, Mic, MicOff, RefreshCw, Settings, UserPlus, Video, VideoOff, X,
 } from 'lucide-react'
 import { Avatar } from '@/components/avatar'
 import { addFriend, type Identity, type PublicProfile } from '@/components/identity'
@@ -64,7 +64,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const [mic, setMic] = useState(true)
   const [cam, setCam] = useState(true)
   const [facing, setFacing] = useState<'user' | 'environment'>('user')
-  const [beauty, setBeauty] = useState(false)
   const [mirror, setMirror] = useState(true)
   const [sound, setSound] = useState(true)
   const [same, setSame] = useState(false)
@@ -96,6 +95,12 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   const countryRef = useRef(country)
   const micRef = useRef(mic)
   const camRef = useRef(cam)
+  const facingRef = useRef<'user' | 'environment'>('user')
+  const toastTimer = useRef<number | undefined>(undefined)
+  const typingOn = useRef(false)
+  const typingSentAt = useRef(0)
+  const peerTypingTimer = useRef<number | undefined>(undefined)
+  const bannerTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     phaseRef.current = phase
@@ -118,19 +123,35 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   }
   const flash = useCallback((t: string, ms = 1600) => {
     setToast(t)
-    window.setTimeout(() => setToast(''), ms)
+    window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => setToast(''), ms)
   }, [])
 
   // ---- my camera and mic (the buttons below only change MY tracks) ----
-  const startCamera = useCallback(async (face: 'user' | 'environment') => {
+  const startCamera = useCallback(async (face: 'user' | 'environment'): Promise<boolean> => {
     try {
       streamRef.current?.getTracks().forEach((t) => t.stop())
-      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face }, audio: true })
+      let s: MediaStream
+      let noMic = false
+      try {
+        s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face }, audio: true })
+      } catch (err) {
+        const name = (err as { name?: string } | null)?.name
+        // no microphone (or mic blocked): still allow video, the other person just will not hear us
+        if (name === 'NotFoundError' || name === 'NotAllowedError' || name === 'NotReadableError') {
+          s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face }, audio: false })
+          noMic = true
+        } else {
+          throw err
+        }
+      }
       if (!aliveRef.current) {
         // the page was closed while the permission was being asked: do not leave the camera on
         s.getTracks().forEach((t) => t.stop())
-        return
+        return false
       }
+      // two requests at the same time (permission prompt + Start): never leave an older stream running with the camera light on
+      if (streamRef.current && streamRef.current !== s) streamRef.current.getTracks().forEach((t) => t.stop())
       s.getAudioTracks().forEach((t) => (t.enabled = micRef.current))
       s.getVideoTracks().forEach((t) => (t.enabled = camRef.current))
       streamRef.current = s
@@ -140,10 +161,18 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
         if (t) void sender.replaceTrack(t)
       })
       setCamError('')
+      if (noMic) flash('No microphone found. The other person will not hear you.', 4000)
+      return true
     } catch {
+      // the old tracks were stopped above, so there is usually no working camera now
+      if (!streamRef.current?.getTracks().some((t) => t.readyState === 'live')) {
+        streamRef.current = null
+        if (localRef.current) localRef.current.srcObject = null
+      }
       setCamError('Allow camera and microphone to start video chat.')
+      return false
     }
-  }, [])
+  }, [flash])
 
   const closePc = useCallback(() => {
     pcRef.current?.close()
@@ -160,8 +189,14 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       streamRef.current?.getTracks().forEach((t) => t.stop())
       closePc()
       timers.current.forEach((id) => clearTimeout(id))
+      window.clearTimeout(toastTimer.current)
+      window.clearTimeout(peerTypingTimer.current)
+      window.clearTimeout(bannerTimer.current)
+      window.clearTimeout(typingOff.current)
+      // leaving this page must also leave the queue / chat, otherwise a stranger could be matched with someone who is already gone
+      socket?.emit('stop')
     }
-  }, [startCamera, closePc])
+  }, [startCamera, closePc, socket])
 
   const makePc = useCallback(() => {
     closePc()
@@ -181,8 +216,13 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
   useEffect(() => {
     if (!socket) return
     const flush = async (pc: RTCPeerConnection) => {
-      for (const c of pendingIce.current) await pc.addIceCandidate(c)
+      const list = pendingIce.current
       pendingIce.current = []
+      for (const c of list) {
+        try {
+          await pc.addIceCandidate(c)
+        } catch {}
+      }
     }
     const clearAway = () => {
       if (awayTick.current) window.clearInterval(awayTick.current)
@@ -199,6 +239,11 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       } catch {}
     }
     const onMatched = async (d: { peer: PublicProfile; initiator: boolean; room?: { id: string; token: string } }) => {
+      if (phaseRef.current !== 'searching') {
+        // we pressed Stop while the server was matching us: tell the server again so the other person is not left waiting
+        socket.emit('stop')
+        return
+      }
       resumeRef.current = d.room ?? null
       initiatorRef.current = d.initiator
       clearAway()
@@ -230,7 +275,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
           await pc.setRemoteDescription(m.data)
           await flush(pc)
         } else if (m.type === 'ice') {
-          if (pc.remoteDescription) await pc.addIceCandidate(m.data)
+          if (pc.remoteDescription) await pc.addIceCandidate(m.data).catch(() => {})
           else pendingIce.current.push(m.data)
         }
       } catch {}
@@ -239,7 +284,12 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       setTyping(false)
       setMsgs((p) => [...p, { id: Date.now() + Math.random(), from: 'peer', text: d.text }])
     }
-    const onTyping = (on: boolean) => setTyping(on)
+    const onTyping = (on: boolean) => {
+      setTyping(on)
+      // if the "stopped typing" signal is ever lost, never leave the dots on screen
+      window.clearTimeout(peerTypingTimer.current)
+      if (on) peerTypingTimer.current = window.setTimeout(() => setTyping(false), 6000)
+    }
     const onLeft = (d?: { reason?: string }) => {
       resumeRef.current = null
       clearAway()
@@ -278,18 +328,34 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       setStatus(null)
       void renegotiate()
     }
-    const onResumeFailed = () => onLeft({ reason: 'timeout' })
+    const onResumeFailed = () => {
+      onLeft({ reason: 'timeout' })
+      flash('That chat has ended. Searching for a new stranger...', 3000)
+    }
     const onRequest = (d: { fromId: string; from: PublicProfile }) => {
       const r = { id: d.fromId, from: d.from }
       setReqs((p) => [...p.filter((x) => x.id !== r.id), r])
       setBanner(r)
-      window.setTimeout(() => setBanner(null), 6000)
+      window.clearTimeout(bannerTimer.current)
+      bannerTimer.current = window.setTimeout(() => setBanner(null), 6000)
     }
     const onResponse = (d: { accept: boolean; from: PublicProfile }) => {
       if (d.accept) {
         addFriend({ name: d.from.name, photo: d.from.photo })
         flash(`${d.from.name} is now your friend`)
       }
+    }
+    // The server ignored our Start (too many in a few seconds): back to the start screen instead of searching forever
+    const onSlowDown = () => {
+      resumeRef.current = null
+      clearAway()
+      setStatus(null)
+      closePc()
+      setPeer(null)
+      setMsgs([])
+      setTyping(false)
+      setPhase('idle')
+      flash('You are pressing Start too fast. Wait a few seconds and try again.', 4000)
     }
     // Blocked for 3 minutes (banned word)
     const onBlocked = (d: { ms: number }) => {
@@ -305,6 +371,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       flash(`You are blocked for ${blockText(d.ms)}. Telegram and paid promotions are not allowed here.`, 6000)
     }
     socket.on('blocked', onBlocked)
+    socket.on('slow-down', onSlowDown)
     socket.on('matched', onMatched)
     socket.on('signal', onSignal)
     socket.on('message', onMessage)
@@ -320,6 +387,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     socket.on('friend-response', onResponse)
     return () => {
       socket.off('blocked', onBlocked)
+      socket.off('slow-down', onSlowDown)
       socket.off('matched', onMatched)
       socket.off('signal', onSignal)
       socket.off('message', onMessage)
@@ -348,19 +416,32 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       flash('Chat server is not connected right now. Please try again in a moment.', 4000)
       return
     }
+    if (!streamRef.current) {
+      // No camera / mic yet (permission not given): the stranger would only see a black screen. Ask again instead.
+      setPhase('idle')
+      flash('Allow camera and microphone, then tap Start again.', 4000)
+      void startCamera(facingRef.current)
+      return
+    }
     resumeRef.current = null
     if (awayTick.current) window.clearInterval(awayTick.current)
     awayTick.current = undefined
     setStatus(null)
+    phaseRef.current = 'searching'
     setPhase('searching')
-    socket.emit('join', { mode: 'video', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
-  }, [socket, flash])
+    // not connected yet: the 'connect' handler sends the join as soon as the server answers (never twice)
+    if (socket.connected) socket.emit('join', { mode: 'video', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
+  }, [socket, flash, startCamera])
 
   useEffect(() => {
     startRef.current = start
   }, [start])
 
   function next() {
+    if (socket && !socket.connected) {
+      flash('You are offline. Reconnecting...')
+      return
+    }
     socket?.emit('skip')
     closePc()
     start()
@@ -386,27 +467,51 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     streamRef.current?.getVideoTracks().forEach((t) => (t.enabled = v))
     flash(v ? 'Your camera is on' : 'Your camera is off')
   }
-  function flip() {
-    const f = facing === 'user' ? 'environment' : 'user'
+  async function flip() {
+    const prev = facing
+    const f = prev === 'user' ? 'environment' : 'user'
     setFacing(f)
-    void startCamera(f)
-    flash('Camera flipped')
+    facingRef.current = f
+    if (await startCamera(f)) {
+      flash('Camera flipped')
+    } else {
+      // this device has no other camera: go back to the one that worked
+      setFacing(prev)
+      facingRef.current = prev
+      void startCamera(prev)
+      flash('No other camera found')
+    }
   }
   function sendMsg(e: FormEvent) {
     e.preventDefault()
     const text = draft.trim()
     if (!text || phase !== 'connected') return
+    if (!socket || !socket.connected) {
+      flash('You are offline. Reconnecting...')
+      return
+    }
     setMsgs((p) => [...p, { id: Date.now(), from: 'you', text: text.slice(0, 500) }])
     setDraft('')
     socket?.emit('message', { text: text.slice(0, 500) })
+    window.clearTimeout(typingOff.current)
+    typingOn.current = false
     socket?.emit('typing', false)
   }
   function onInput(v: string) {
     setDraft(v)
     if (!socket || phase !== 'connected') return
-    socket.emit('typing', true)
+    // "typing" is sent once (and again every 3 seconds while typing), never on every key: the server rate-limits it
+    const now = Date.now()
+    if (!typingOn.current || now - typingSentAt.current > 3000) {
+      typingOn.current = true
+      typingSentAt.current = now
+      socket.emit('typing', true)
+    }
     window.clearTimeout(typingOff.current)
-    typingOff.current = window.setTimeout(() => socket.emit('typing', false), 1500)
+    typingOff.current = window.setTimeout(() => {
+      typingOn.current = false
+      socket.emit('typing', false)
+    }, 1500)
   }
   // Friend requests only between two Google users (anonymous users cannot send or get them).
   const canFriend = identity.type === 'google' && !!peer?.google
@@ -425,6 +530,10 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
     setBanner(null)
   }
   function report(reason: string) {
+    if (phaseRef.current !== 'connected') {
+      setSheet(null)
+      return
+    }
     socket?.emit('report', { reason })
     setSheet(null)
     flash('Report sent')
@@ -487,7 +596,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
         )}
 
         <div className="absolute right-3 flex flex-col gap-2.5" style={{ top }}>
-          <button type="button" onClick={() => setSheet('report')} className={cn('flex size-[42px] items-center justify-center rounded-full', glass, 'lg:border-0 lg:bg-[#dc2626]')}>
+          <button type="button" onClick={() => (phase === 'connected' ? setSheet('report') : flash('You can report someone during a chat'))} className={cn('flex size-[42px] items-center justify-center rounded-full', glass, 'lg:border-0 lg:bg-[#dc2626]')}>
             <Flag className="size-5" aria-hidden="true" />
             <span className="sr-only">Report</span>
           </button>
@@ -535,7 +644,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
           className="absolute inset-0 size-full object-cover"
           style={{
             transform: mirror && facing === 'user' ? 'scaleX(-1)' : undefined,
-            filter: beauty ? 'contrast(1.05) saturate(1.15) brightness(1.06)' : undefined,
           }}
         />
         {(!cam || camError) && (
@@ -564,10 +672,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
           <button type="button" onClick={flip} className={railBtn(facing === 'environment')}>
             <RefreshCw className="size-5" aria-hidden="true" />
             <span className="sr-only">Flip camera</span>
-          </button>
-          <button type="button" onClick={() => { setBeauty((v) => !v); flash(beauty ? 'Beauty filter off' : 'Beauty filter on') }} className={railBtn(beauty)}>
-            <Sparkles className="size-5" aria-hidden="true" />
-            <span className="sr-only">Beauty filter</span>
           </button>
         </div>
 
@@ -655,7 +759,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
         {[
           ['Same Country', same, () => setSame((v) => !v)],
           ['Mirror my video', mirror, () => setMirror((v) => !v)],
-          ['Beauty filter', beauty, () => setBeauty((v) => !v)],
           ['Sound', sound, () => setSound((v) => !v)],
         ].map(([label, on, fn]) => (
           <button key={label as string} type="button" onClick={fn as () => void} className="flex w-full items-center justify-between border-t border-white/10 py-3.5">
@@ -663,9 +766,6 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
             <Toggle on={on as boolean} />
           </button>
         ))}
-        <div className="flex items-center justify-between border-t border-white/10 py-3.5">
-          Video quality <b className="text-[#4f7cff]">Auto</b>
-        </div>
       </Sheet>
 
       <Sheet open={sheet === 'requests'} title="Requests" onClose={() => setSheet('settings')}>

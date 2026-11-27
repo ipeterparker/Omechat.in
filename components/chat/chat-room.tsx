@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ActiveCount } from '@/components/active-count'
 import { ChatBear } from '@/components/chat-bear'
 import {
-  clearIdentity, loadGoogleIdentity, loadIdentity, loadProfile, saveIdentity, saveProfile, toPublic,
+  loadGoogleIdentity, loadProfile, saveIdentity, saveProfile, toPublic,
   type Identity, type Profile,
 } from '@/components/identity'
 import { MessagePanel } from './message-panel'
@@ -47,10 +47,9 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
       if (saved && THEMES.some((t) => t.id === saved)) setThemeId(saved)
     } catch {}
     setThemeReady(true)
-    // Video Chat needs a Google sign-in (popup). Text Chat has no login: anonymous by default.
-    const existing = loadIdentity()
+    // Video Chat needs a Google sign-in (popup). Text Chat has no login and is ALWAYS anonymous:
+    // a Google sign-in saved by Video Chat must never show its name / photo / age in a text chat.
     if (initialMode === 'video') setIdentity(loadGoogleIdentity())
-    else if (existing) setIdentity(existing)
     else {
       const anon: Identity = { type: 'anon' }
       saveIdentity(anon)
@@ -62,13 +61,6 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
   function pick(i: Identity) {
     saveIdentity(i)
     setIdentity(i)
-  }
-
-  function switchAccount() {
-    clearIdentity()
-    setThemeOpen(false)
-    setSearching(false)
-    setIdentity({ type: 'anon' })
   }
 
   function chooseTheme(id: string) {
@@ -175,7 +167,6 @@ export function ChatRoom({ initialMode }: { initialMode: Mode }) {
           account={account}
           onSelect={chooseTheme}
           onClose={() => setThemeOpen(false)}
-          onSwitchAccount={switchAccount}
         />
       )}
     </div>

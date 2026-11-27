@@ -1,10 +1,10 @@
 import { EyeOff, Zap, ShieldCheck, Globe } from 'lucide-react'
 
 const features = [
-  { icon: EyeOff, title: 'Fully anonymous', body: 'No account, no name, no trace. You decide what to share.' },
+  { icon: EyeOff, title: 'Fully anonymous', body: 'No account and no name needed for text chat. You decide what to share.' },
   { icon: Zap, title: 'Instant matching', body: 'One tap and you are talking. Skip anytime to meet someone else.' },
   { icon: Globe, title: 'Worldwide', body: 'Strangers from every corner of the world, any hour of the day.' },
-  { icon: ShieldCheck, title: 'Moderated', body: 'Report in one tap. Bad actors are removed quickly.' },
+  { icon: ShieldCheck, title: 'Safer chats', body: 'Skip in one tap. Telegram and paid promotions are blocked automatically.' },
 ]
 
 export function Features() {

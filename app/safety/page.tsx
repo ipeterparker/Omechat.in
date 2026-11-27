@@ -34,7 +34,7 @@ export default function SafetyPage() {
       <h2>Offensive content</h2>
       <p>
         Random chat means you may meet rude or inappropriate people. You can leave in one tap with Skip, and you can report anyone who breaks our
-        Community Rules. Reports are reviewed by our moderators, but no website can promise that every bad user is blocked instantly.
+        Community Rules. We read reports and act on them, but no website can promise that every bad user is blocked instantly.
       </p>
       <h2>Do not meet strangers alone</h2>
       <p>If you ever decide to meet someone from the internet, tell a trusted person and meet in a public place.</p>

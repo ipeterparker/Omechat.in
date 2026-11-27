@@ -1,7 +1,11 @@
 import type { Metadata } from 'next'
 import { LegalPage } from '@/components/legal-page'
 
-export const metadata: Metadata = { title: 'Community Rules \u2014 Omechat', alternates: { canonical: '/guidelines' } }
+export const metadata: Metadata = {
+  title: 'Community Rules \u2014 Omechat',
+  alternates: { canonical: '/guidelines' },
+  description: 'Community rules for Omechat: be respectful, keep it clean, protect your privacy and report problems.',
+}
 
 export default function GuidelinesPage() {
   return (
@@ -13,7 +17,7 @@ export default function GuidelinesPage() {
       <h2>Protect yourself</h2>
       <p>Do not share personal information, and skip anyone who makes you uncomfortable.</p>
       <h2>Report problems</h2>
-      <p>Use Report a problem in the menu. Our moderators review reports around the clock.</p>
+      <p>Use Report a problem in the menu to email us the details. We review reports as soon as we can.</p>
     </LegalPage>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Avatar } from '@/components/avatar'
@@ -14,6 +14,7 @@ export function SiteMenu({ open, onOpenChange }: Props) {
   const [identity, setIdentity] = useState<Identity | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [shown, setShown] = useState(false)
+  const panelRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     if (!open) {
@@ -26,12 +27,43 @@ export function SiteMenu({ open, onOpenChange }: Props) {
     return () => cancelAnimationFrame(id)
   }, [open])
 
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onOpenChange(false)
+        return
+      }
+      if (e.key !== 'Tab') return
+      // keep Tab inside the open menu
+      const items = panelRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')
+      if (!items || items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && (active === first || !panelRef.current?.contains(active))) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === last || !panelRef.current?.contains(active))) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    const t = window.setTimeout(() => panelRef.current?.querySelector<HTMLElement>('a[href], button')?.focus(), 0)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.clearTimeout(t)
+    }
+  }, [open, onOpenChange])
+
   if (!open) return null
   const google = identity?.type === 'google' ? identity : null
   const close = () => onOpenChange(false)
 
-  // Contact options appear only when NEXT_PUBLIC_CONTACT_EMAIL is set (add it in Vercel, then redeploy).
-  const contact = process.env.NEXT_PUBLIC_CONTACT_EMAIL
+  // The Guidelines page tells people to use "Report a problem" here, so it must always exist.
+  // Set NEXT_PUBLIC_CONTACT_EMAIL (in Vercel, then redeploy) to use another address.
+  const contact = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'support@omechat.in'
   const items = [
     { href: '/', label: 'Home', icon: '\u{1F3E0}' },
     { href: '/chat?mode=text', label: 'Text Chat', icon: '\u{1F4AC}' },
@@ -55,6 +87,7 @@ export function SiteMenu({ open, onOpenChange }: Props) {
     <div id="site-menu" className="fixed inset-0 z-[60] flex" role="dialog" aria-modal="true" aria-label="Menu">
       <button type="button" aria-label="Close menu" onClick={close} className="absolute inset-0 bg-black/60" />
       <nav
+        ref={panelRef}
         className={cn(
           'relative flex h-full w-[82%] max-w-xs flex-col rounded-r-3xl border-r border-border bg-card p-4 pt-5 text-card-foreground transition-transform duration-300 ease-out',
           shown ? 'translate-x-0' : '-translate-x-full',

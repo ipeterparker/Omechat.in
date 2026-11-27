@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Menu } from 'lucide-react'
 import { ActiveCount } from '@/components/active-count'
 import { ChatBear } from '@/components/chat-bear'
@@ -24,6 +24,10 @@ export function SiteHeader() {
   const menuRef = useRef<HTMLButtonElement>(null)
   const path = usePathname()
   const isHome = path === '/'
+  const onOpenChange = useCallback((v: boolean) => {
+    setOpen(v)
+    if (!v) window.setTimeout(() => menuRef.current?.focus(), 0) // give focus back to the menu button
+  }, [])
 
   return (
     <header className="relative z-50 px-3 pt-3 lg:px-8 lg:pt-4">
@@ -70,7 +74,7 @@ export function SiteHeader() {
         <ThemeToggle className="hidden lg:order-4 lg:block" />
       </div>
 
-      <SiteMenu open={open} onOpenChange={setOpen} />
+      <SiteMenu open={open} onOpenChange={onOpenChange} />
     </header>
   )
 }

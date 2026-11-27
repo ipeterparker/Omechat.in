@@ -1,7 +1,11 @@
 import type { Metadata } from 'next'
 import { LegalPage } from '@/components/legal-page'
 
-export const metadata: Metadata = { title: 'Terms of Service \u2014 Omechat', alternates: { canonical: '/terms' } }
+export const metadata: Metadata = {
+  title: 'Terms of Service \u2014 Omechat',
+  alternates: { canonical: '/terms' },
+  description: 'Terms of Service for Omechat: 18+ only, acceptable use, your responsibility and no warranty.',
+}
 
 export default function TermsPage() {
   return (

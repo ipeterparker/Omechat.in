@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3001
 // Only the real site may talk to this server (set ALLOWED_ORIGINS on Render to override, comma separated)
 const ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((x) => x.trim()).filter(Boolean)
-  : ['https://omechat.in', 'https://www.omechat.in', 'http://localhost:3000']
+  : ['https://omechat.in', 'https://www.omechat.in', 'http://localhost:3000', 'http://127.0.0.1:3000']
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' })
@@ -16,6 +16,12 @@ const server = http.createServer((req, res) => {
 // Ping timing: short net blips are ignored; a really dead connection (net off) is noticed in 15-30 seconds; a closed tab is noticed at once.
 const io = new Server(server, {
   cors: { origin: ORIGINS },
+  // CORS only covers HTTP polling; this also stops other websites from opening a WebSocket to this server.
+  // (No Origin header = not a browser page, allowed so health checks / tools keep working.)
+  allowRequest: (req, cb) => {
+    const o = req.headers.origin
+    cb(null, !o || ORIGINS.includes(o))
+  },
   maxHttpBufferSize: 200 * 1024,
   pingInterval: 15000,
   pingTimeout: 15000,
@@ -25,7 +31,8 @@ const queue = [] // sockets waiting for a stranger
 const blocked = new Map() // socket.id -> Set of socket ids it reported
 const rooms = new Map() // room id -> { id, members: [member, member] }
 const byToken = new Map() // resume token -> member
-// member = { sock, token, initiator, away, timer, room, pending } (pending = events sent while this person was away)
+const fids = new Map() // friend-request id -> { m: member, t: time } (so the answer still reaches the asker after a reconnect)
+// member = { sock, token, fid, initiator, away, timer, room, pending } (pending = events sent while this person was away)
 
 const rid = () => crypto.randomBytes(12).toString('hex')
 
@@ -62,14 +69,20 @@ function safePhoto(v) {
   return undefined
 }
 
-const clean = (p = {}) => ({
-  name: String(p.name || 'Anonymous').slice(0, 24),
-  google: !!p.google,
-  photo: safePhoto(p.photo),
-  age: Number.isFinite(p.age) && p.age >= 0 && p.age <= 120 ? Math.round(p.age) : undefined,
-  gender: p.gender === 'Male' || p.gender === 'Female' ? p.gender : undefined,
-  country: typeof p.country === 'string' ? p.country.slice(0, 2).toUpperCase() : null,
-})
+// A client can send anything (null, a string, a number ...): never read fields from it without checking
+const obj = (v) => (v && typeof v === 'object' ? v : {})
+
+const clean = (raw) => {
+  const p = obj(raw)
+  return {
+    name: (typeof p.name === 'string' && p.name.trim() ? p.name.trim() : 'Anonymous').slice(0, 24),
+    google: p.google === true,
+    photo: safePhoto(p.photo),
+    age: Number.isFinite(p.age) && p.age >= 0 && p.age <= 120 ? Math.round(p.age) : undefined,
+    gender: p.gender === 'Male' || p.gender === 'Female' ? p.gender : undefined,
+    country: typeof p.country === 'string' && /^[A-Za-z]{2}$/.test(p.country) ? p.country.toUpperCase() : null,
+  }
+}
 
 function removeFromQueue(s) {
   const i = queue.indexOf(s)
@@ -78,6 +91,7 @@ function removeFromQueue(s) {
 
 // ---- Banned-word block: "telegram" and "paid" (any style: symbols, spaces, numbers, short forms) -> 3 minute block ----
 const BLOCK_MS = 3 * 60 * 1000
+const AWAY_LIMIT_MS = 2 * 60 * 1000 // a person who closed the tab / lost net can come back to the same chat for 2 minutes
 
 // Look-alike letters (small caps, Cyrillic, Greek...) -> plain letters
 const LOOKALIKE = {
@@ -101,7 +115,9 @@ function normalizeText(s) {
 // One letter -> the characters that can stand for it (a=4/@, e=3, i=1/!/|, l=1/|/!, t=7/+, g=9/6), repeats allowed.
 const CLS = { t: '[t7+]', e: '[e3€£]', l: '[l1|!]', g: '[g96]', r: 'r', a: '[a4@]', m: 'm', p: 'p', i: '[i1!|]', d: 'd' }
 const SEP = '[^a-z0-9@|!+]' // spaces, dots, dashes, underscores, emoji ... anything between letters
-const L = (c, optional = false) => (optional ? `(?:${CLS[c]}+${SEP}*)*` : `${CLS[c]}+${SEP}*`)
+// NOTE: the optional group takes ONE letter per round (not `letter+` inside `(...)*`): a quantifier inside a quantifier
+// makes the regex exponentially slow on input like "tel" + "eeeeeeeeeeeeeeeeeeee" + "x" and would freeze the whole server.
+const L = (c, optional = false) => (optional ? `(?:${CLS[c]}${SEP}*)*` : `${CLS[c]}+${SEP}*`)
 
 const PATTERNS = [
   // telegram, also tlgrm / telgram / teleegram / t.e.l.e.g.r.a.m / t e l e g r a m
@@ -115,11 +131,11 @@ const PATTERNS = [
 const PAID = '(?<![a-z])' + L('p') + L('a') + L('i') + 'd+'
 const PAID_END = PAID + '(?![a-z])'
 const CTX = '(?:' + [
-  's[e3€£a4@]*r+[vw]+[i1!|]*[cs5]+[e3€£]*s*[a-z]*', // service(s), servis, srvc, sarvice
+  's[e3€£a4@]*r+[vw]+[i1!|]*[cs5]+[e3€£]*[a-z]*', // service(s), servis, srvc, sarvice
   's' + SEP + '*[e3€£a4@]+' + SEP + '*r+' + SEP + '*[vw]+' + SEP + '*[i1!|]+' + SEP + '*[cs5]+' + SEP + '*[e3€£]*', // s e r v i c e
   'p+r+[o0]+m+[o0][a-z]*', // promo, promotion, promote
-  '[a4@]+d+s?(?![a-z0-9])', // ad, ads
-  '[a4@]+d+v[a-z]*', // advert, advertising, advertisement
+  '[a4@]+d{1}s?(?![a-z0-9])', // ad, ads (not "add")
+  '[a4@]+d+v[e3]+r+t[a-z]*', // advert, advertising, advertisement (not "advice", "advance")
 ].join('|') + ')'
 const CTX_START = '(?<![a-z])' + CTX
 const LINK = '(?:' + SEP + '+(?:is|are|ka|ki|ke|hai|hain|h|only|available|wala|wali|me|mein)(?![a-z]))?'
@@ -132,8 +148,11 @@ const CYRILLIC_TELEGRAM = /т\s*[еe]\s*л\s*[еe]\s*г\s*р\s*[аa]\s*м/i
 // Hindi spelling of telegram
 const DEVANAGARI_TELEGRAM = /ट[ेि]?ल[ीिे]?ग्?र[ाैे]?म/
 
+const MAX_CHECK = 600 // messages are cut to 500 characters anyway; never scan more than this
+
 function hasBannedWord(text) {
   if (typeof text !== 'string' || !text) return false
+  text = text.slice(0, MAX_CHECK)
   if (DEVANAGARI_TELEGRAM.test(text.replace(/[\s​-‏⁠﻿]/g, ''))) return true
   if (CYRILLIC_TELEGRAM.test(text)) return true
   const t = normalizeText(text)
@@ -245,6 +264,7 @@ setInterval(() => {
     if (keep.length) strikes.set(k, keep)
     else strikes.delete(k)
   }
+  for (const [k, v] of fids) if (now - v.t > 15 * 60 * 1000) fids.delete(k)
 }, 60 * 1000).unref()
 
 // Returns true when this banned word should lead to a block now.
@@ -302,7 +322,7 @@ function tryMatch(s) {
   removeFromQueue(s)
   const room = { id: rid(), members: [] }
   const join = (sock, initiator) => {
-    const m = { sock, token: rid(), initiator, away: false, timer: null, room, pending: [] }
+    const m = { sock, token: rid(), fid: rid(), initiator, away: false, timer: null, room, pending: [] }
     room.members.push(m)
     sock.data.room = room
     sock.data.member = m
@@ -322,8 +342,13 @@ io.on('connection', (socket) => {
   scheduleOnline()
   { const left = banLeft(socket); if (left > 0) socket.emit('blocked', { ms: left }) }
 
-  socket.on('join', (d = {}) => {
-    if (!allow(socket, 'join', 10, 10000)) return
+  socket.on('join', (raw) => {
+    const d = obj(raw)
+    if (!allow(socket, 'join', 10, 10000)) {
+      // tell the page, otherwise it would keep showing "Looking for someone..." for a search that never started
+      socket.emit('slow-down')
+      return
+    }
     leavePeer(socket, 'left')
     removeFromQueue(socket)
     if (stillBlocked(socket)) return
@@ -344,7 +369,8 @@ io.on('connection', (socket) => {
   })
 
   // A user whose connection dropped comes back with the token they got when matched.
-  socket.on('resume', (d = {}) => {
+  socket.on('resume', (raw) => {
+    const d = obj(raw)
     if (!allow(socket, 'resume', 10, 10000)) return
     const m = byToken.get(String(d.token || ''))
     const room = m && m.room
@@ -382,23 +408,29 @@ io.on('connection', (socket) => {
     else if (wasAway && other.sock.connected) other.sock.emit('peer-back')
   })
 
-  socket.on('message', (d = {}) => {
+  socket.on('message', (raw) => {
+    const d = obj(raw)
     if (typeof d.text !== 'string') return
     if (!allow(socket, 'message', 20, 10000)) return
     if (stillBlocked(socket)) return
-    if ((hasBannedWord(d.text) || hasBannedWord(d.reply && d.reply.text)) && shouldBlock(socket)) return punish(socket, 'message')
-    const out = { text: d.text.slice(0, 500) }
+    // cut everything to its real maximum first, so the word check never has to scan a huge text
+    const text = d.text.slice(0, 500)
+    const r = obj(d.reply)
+    const replyText = typeof r.text === 'string' ? r.text.slice(0, 120) : undefined
+    if ((hasBannedWord(text) || hasBannedWord(replyText)) && shouldBlock(socket)) return punish(socket, 'message')
+    const out = { text }
     if (typeof d.mid === 'string') out.mid = d.mid.slice(0, 24)
-    const r = d.reply
-    if (r && typeof r.text === 'string') out.reply = { text: r.text.slice(0, 120), mine: !!r.mine }
+    if (replyText !== undefined) out.reply = { text: replyText, mine: !!r.mine }
     relay(socket, 'message', out)
   })
-  socket.on('edit', (d = {}) => {
+  socket.on('edit', (raw) => {
+    const d = obj(raw)
     if (typeof d.text !== 'string' || typeof d.mid !== 'string') return
     if (!allow(socket, 'edit', 20, 10000)) return
     if (stillBlocked(socket)) return
-    if (hasBannedWord(d.text) && shouldBlock(socket)) return punish(socket, 'edit')
-    relay(socket, 'edit', { mid: d.mid.slice(0, 24), text: d.text.slice(0, 500) })
+    const text = d.text.slice(0, 500)
+    if (hasBannedWord(text) && shouldBlock(socket)) return punish(socket, 'edit')
+    relay(socket, 'edit', { mid: d.mid.slice(0, 24), text })
   })
   socket.on('typing', (on) => {
     if (!allow(socket, 'typing', 20, 5000)) return
@@ -406,7 +438,9 @@ io.on('connection', (socket) => {
   })
   socket.on('signal', (m) => {
     if (!allow(socket, 'signal', 300, 10000)) return
-    livePeer(socket)?.emit('signal', m)
+    // only real WebRTC signalling messages are passed on
+    if (!m || typeof m !== 'object' || !['offer', 'answer', 'ice'].includes(m.type) || !m.data || typeof m.data !== 'object') return
+    livePeer(socket)?.emit('signal', { type: m.type, data: m.data })
   })
 
   // Friend requests: only between two Google users
@@ -415,21 +449,27 @@ io.on('connection', (socket) => {
     const peer = livePeer(socket)
     if (peer && peer.data.profile.google && socket.data.profile.google) {
       // remember who asked, so only a person who really asked can get the answer
+      const me = socket.data.member
+      if (!me) return
       if (!peer.data.friendFrom) peer.data.friendFrom = new Set()
-      if (peer.data.friendFrom.size < 20) peer.data.friendFrom.add(socket.id)
-      peer.emit('friend-request', { fromId: socket.id, from: socket.data.profile })
+      if (peer.data.friendFrom.size < 20) peer.data.friendFrom.add(me.fid)
+      fids.set(me.fid, { m: me, t: Date.now() })
+      peer.emit('friend-request', { fromId: me.fid, from: socket.data.profile })
     }
   })
-  socket.on('friend-response', (d = {}) => {
-    if (!allow(socket, 'friend', 10, 30000)) return
+  socket.on('friend-response', (raw) => {
+    const d = obj(raw)
+    if (!allow(socket, 'friend-answer', 10, 30000)) return
     // the answer goes only to the person who really asked this user, and only once
     if (typeof d.to !== 'string' || !socket.data.friendFrom || !socket.data.friendFrom.has(d.to)) return
     socket.data.friendFrom.delete(d.to)
-    const target = io.sockets.sockets.get(d.to)
+    const entry = fids.get(d.to)
+    const target = entry && entry.m.sock.connected ? entry.m.sock : null
     if (target && socket.data.profile.google) target.emit('friend-response', { accept: !!d.accept, from: socket.data.profile })
   })
 
-  socket.on('report', (d = {}) => {
+  socket.on('report', (raw) => {
+    const d = obj(raw)
     if (!allow(socket, 'report', 5, 60000)) return
     const other = otherMember(socket)
     if (!other) return
@@ -452,6 +492,12 @@ io.on('connection', (socket) => {
         // site/tab closed or internet off: keep the chat, tell the other person, resume if they come back
         m.away = true
         if (other.sock.connected) other.sock.emit('peer-away')
+        // nobody should wait for a ghost forever: after AWAY_LIMIT_MS the chat is closed and the other person is told
+        clearTimeout(m.timer)
+        m.timer = setTimeout(() => {
+          if (m.away && rooms.get(room.id) === room) destroyRoom(room, 'disconnected', m)
+        }, AWAY_LIMIT_MS)
+        if (m.timer.unref) m.timer.unref()
       }
     } else if (!room) {
       blocked.delete(socket.id)

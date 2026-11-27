@@ -1,9 +1,9 @@
 import { Globe2, Lock, UserX } from 'lucide-react'
 
 const stats = [
-  { icon: Globe2, value: '120+', label: 'Countries' },
+  { icon: Globe2, value: 'Global', label: 'Strangers' },
   { icon: UserX, value: 'Zero', label: 'Sign up' },
-  { icon: Lock, value: '24/7', label: 'Moderated' },
+  { icon: Lock, value: '1 tap', label: 'Skip anyone' },
 ]
 
 export function About() {

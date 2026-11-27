@@ -60,8 +60,15 @@ export function LoginModal({ onPick }: { onPick: (i: Identity) => void }) {
           const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: { Authorization: `Bearer ${r.access_token}` },
           })
+          if (!res.ok) throw new Error('userinfo failed')
           const u = await res.json()
-          onPick({ type: 'google', name: u.name, email: u.email, picture: u.picture })
+          if (!u || typeof u.email !== 'string' || !u.email) throw new Error('no email')
+          onPick({
+            type: 'google',
+            name: typeof u.name === 'string' && u.name.trim() ? u.name.trim() : u.email.split('@')[0],
+            email: u.email,
+            picture: typeof u.picture === 'string' ? u.picture : undefined,
+          })
         } catch {
           setError('Google sign-in failed. Try again.')
         }

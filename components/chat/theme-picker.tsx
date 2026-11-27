@@ -11,7 +11,7 @@ type Props = {
   account: string
   onSelect: (id: string) => void
   onClose: () => void
-  onSwitchAccount: () => void
+  onSwitchAccount?: () => void // only passed where switching account makes sense (text chat is always anonymous, so no button)
   basicOnly?: boolean // desktop: only Black / White
 }
 
@@ -27,6 +27,15 @@ export function ThemePicker({ open, current, account, onSelect, onClose, onSwitc
     const id = requestAnimationFrame(() => setShown(true))
     return () => cancelAnimationFrame(id)
   }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
 
   if (!open) return null
   const bases = THEMES.filter((t) => t.kind !== 'photo')
@@ -89,9 +98,11 @@ export function ThemePicker({ open, current, account, onSelect, onClose, onSwitc
 
         <div className="mt-auto flex items-center justify-between border-t border-white/10 pt-3 text-xs text-white/60">
           <span>{account}</span>
-          <button type="button" onClick={onSwitchAccount} className="font-semibold text-[#4f7cff]">
-            Change
-          </button>
+          {onSwitchAccount && (
+            <button type="button" onClick={onSwitchAccount} className="font-semibold text-[#4f7cff]">
+              Change
+            </button>
+          )}
         </div>
       </div>
     </div>

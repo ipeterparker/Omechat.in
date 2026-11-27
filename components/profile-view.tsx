@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Camera, LogOut, Mail } from 'lucide-react'
 import { Avatar } from '@/components/avatar'
 import {
-  ageFromDob, clearAll, clearIdentity, fileToDataUrl, loadFriends, loadGoogleIdentity, loadIdentity, loadProfile, saveProfile,
+  ageFromDob, clearAll, fileToDataUrl, loadFriends, loadGoogleIdentity, loadIdentity, loadProfile, saveProfile, signOut, todayISO,
   type Gender, type Identity, type Profile,
 } from '@/components/identity'
 import { flagOf, countryName, useUserCountry } from '@/components/chat/country'
@@ -18,7 +18,6 @@ export function ProfileView() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [identity, setIdentity] = useState<Identity | null | undefined>(undefined)
   const [p, setP] = useState<Profile | null>(null)
-  const [interests, setInterests] = useState('')
   const [friends, setFriends] = useState(0)
   const [saved, setSaved] = useState(false)
 
@@ -26,7 +25,6 @@ export function ProfileView() {
     setIdentity(loadGoogleIdentity() ?? loadIdentity())
     const prof = loadProfile()
     setP(prof)
-    setInterests((prof?.interests ?? []).join(', '))
     setFriends(loadFriends().length)
   }, [])
 
@@ -44,6 +42,7 @@ export function ProfileView() {
 
   const age = ageFromDob(p.dob)
   const tooYoung = age !== undefined && age < 18
+  const dobOk = age !== undefined && !tooYoung
   const photo = p.photo || identity.picture
 
   async function pickPhoto(file?: File) {
@@ -61,9 +60,8 @@ export function ProfileView() {
   }
 
   function save() {
-    if (!p || tooYoung) return
-    const list = interests.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 6)
-    const next = { ...p, interests: list }
+    if (!p || !dobOk) return
+    const next = { ...p, name: p.name.trim() }
     saveProfile(next)
     setP(next)
     setSaved(true)
@@ -102,31 +100,26 @@ export function ProfileView() {
         <input className={field} value={p.name} maxLength={24} onChange={(e) => set('name', e.target.value)} />
 
         <label className="block text-xs text-muted-foreground">Date of birth</label>
-        <input type="date" className={cn(field, '[color-scheme:dark]')} value={p.dob} max={new Date().toISOString().slice(0, 10)} onChange={(e) => set('dob', e.target.value)} />
+        <input type="date" className={field} value={p.dob} max={todayISO()} onChange={(e) => set('dob', e.target.value)} />
         {tooYoung && <p className="text-xs text-red-400">You must be 18 or older.</p>}
+        {age === undefined && <p className="text-xs text-red-400">Enter your date of birth.</p>}
 
         <label className="block text-xs text-muted-foreground">Gender</label>
         <div className="grid grid-cols-2 gap-3">
           {(['Male', 'Female'] as Gender[]).map((g) => (
-            <button key={g} type="button" onClick={() => set('gender', g)} className={cn('h-12 rounded-2xl border font-semibold', p.gender === g ? 'border-[#4f7cff] bg-[#4f7cff]/20' : 'border-white/20')}>
+            <button key={g} type="button" onClick={() => set('gender', g)} className={cn('h-12 rounded-2xl border font-semibold', p.gender === g ? 'border-[#4f7cff] bg-[#4f7cff]/20' : 'border-border')}>
               {g}
             </button>
           ))}
         </div>
 
-        <label className="block text-xs text-muted-foreground">About me</label>
-        <textarea className={cn(field, 'h-24 resize-none py-3')} maxLength={120} value={p.bio ?? ''} placeholder="Say something about yourself" onChange={(e) => set('bio', e.target.value)} />
-
-        <label className="block text-xs text-muted-foreground">Interests (comma separated)</label>
-        <input className={field} value={interests} placeholder="music, cricket, movies" onChange={(e) => { setInterests(e.target.value); setSaved(false) }} />
-
-        <button type="button" onClick={save} disabled={tooYoung || !p.name.trim()} className="h-12 w-full rounded-full bg-[#4f7cff] font-bold text-white disabled:bg-slate-600">
+        <button type="button" onClick={save} disabled={!dobOk || !p.name.trim()} className="h-12 w-full rounded-full bg-[#4f7cff] font-bold text-white disabled:bg-slate-600">
           {saved ? 'Saved \u2713' : 'Save changes'}
         </button>
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
-        <button type="button" onClick={() => { clearIdentity(); router.push('/') }} className="flex h-12 items-center justify-center gap-2 rounded-full border font-semibold">
+        <button type="button" onClick={() => { signOut(); router.push('/') }} className="flex h-12 items-center justify-center gap-2 rounded-full border font-semibold">
           <LogOut className="size-4" aria-hidden="true" /> Sign out
         </button>
         <button type="button" onClick={() => { if (confirm('Delete your profile and friends from this device?')) { clearAll(); router.push('/') } }} className="h-12 rounded-full text-sm font-semibold text-red-400">

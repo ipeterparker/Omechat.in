@@ -13,7 +13,7 @@ export default function AboutPage() {
       <h2>What is Omechat?</h2>
       <p>Omechat is a free website where you can talk to random people online by text chat or video chat. Open the site, tap Start, and you are matched with a stranger. Tap Skip any time to meet someone new.</p>
       <h2>No signup needed</h2>
-      <p>You can continue anonymously and start chatting right away. Signing in with Google is optional.</p>
+      <p>You can continue anonymously and start chatting right away. Signing in with Google is optional for text chat and needed only for video chat.</p>
       <h2>Same Country option</h2>
       <p>Prefer people from your own country? Keep Same Country on. Turn it off to match with people worldwide.</p>
       <h2>For adults only</h2>

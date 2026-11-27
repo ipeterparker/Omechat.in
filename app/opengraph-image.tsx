@@ -15,7 +15,7 @@ export default function Image() {
       >
         <div style={{ fontSize: 132, fontWeight: 800, letterSpacing: -4 }}>Omechat</div>
         <div style={{ fontSize: 48, marginTop: 16, color: '#9fb0ff' }}>Free random text and video chat</div>
-        <div style={{ fontSize: 34, marginTop: 40, color: '#94a3b8' }}>No signup. 18+ only.</div>
+        <div style={{ fontSize: 34, marginTop: 40, color: '#94a3b8' }}>No signup for text chat. 18+ only.</div>
       </div>
     ),
     size,

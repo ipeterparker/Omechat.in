@@ -14,8 +14,6 @@ type Msg = { id: number; from: 'stranger' | 'you' | 'notice'; text: string; mid?
 const newMid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
 type Phase = 'idle' | 'searching' | 'connected' | 'ended'
 
-const AUTO_NEXT = 30
-
 type Props = {
   me: PublicProfile
   country: string | null
@@ -35,7 +33,11 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const [draft, setDraft] = useState('')
   const [typing, setTyping] = useState(false)
   const [confirmSkip, setConfirmSkip] = useState(false)
-  const [countdown, setCountdown] = useState(AUTO_NEXT)
+  // false while the page is not connected to the chat server yet (cold start / no internet)
+  const [linked, setLinked] = useState(() => !!socket && socket.connected)
+  const typingOn = useRef(false)
+  const typingSentAt = useRef(0)
+  const peerTypingTimer = useRef<number | undefined>(undefined)
   const [peer, setPeer] = useState<PublicProfile | null>(null)
   // Reconnect: a small status chip (stranger disconnected / reconnected / you are offline)
   const [status, setStatus] = useState<null | { kind: 'away' } | { kind: 'back' } | { kind: 'offline' }>(null)
@@ -88,6 +90,13 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     phaseRef.current = phase
   }, [phase])
 
+  // Leaving this page (any way) must also leave the queue / chat, otherwise a stranger could be matched with someone who is already gone
+  useEffect(() => {
+    return () => {
+      socket?.emit('stop')
+    }
+  }, [socket])
+
   const clearAway = useCallback(() => {
     if (awayTick.current) window.clearInterval(awayTick.current)
     awayTick.current = undefined
@@ -138,14 +147,21 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     setTyping(false)
     setConfirmSkip(false)
     setPeer(null)
+    phaseRef.current = 'searching'
     setPhase('searching')
-    socket.emit('join', { mode: 'text', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
+    // not connected yet: the 'connect' handler sends the join as soon as the server answers (never twice)
+    if (socket.connected) socket.emit('join', { mode: 'text', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
   }, [socket, resetLink])
 
   // Real server events
   useEffect(() => {
     if (!socket) return
     const onMatched = (d: { peer: PublicProfile; room?: { id: string; token: string } }) => {
+      if (phaseRef.current !== 'searching') {
+        // we pressed Stop while the server was matching us: tell the server again so the other person is not left waiting
+        socket.emit('stop')
+        return
+      }
       resumeRef.current = d.room ?? null
       clearAway()
       setStatus(null)
@@ -160,7 +176,12 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     const onEdit = (d: { mid: string; text: string }) => {
       setMsgs((p) => p.map((x) => (x.from === 'stranger' && x.mid && x.mid === d.mid ? { ...x, text: d.text, edited: true } : x)))
     }
-    const onTyping = (on: boolean) => setTyping(on)
+    const onTyping = (on: boolean) => {
+      setTyping(on)
+      // if the "stopped typing" signal is ever lost, never leave the dots on screen
+      window.clearTimeout(peerTypingTimer.current)
+      if (on) peerTypingTimer.current = window.setTimeout(() => setTyping(false), 6000)
+    }
     const onLeft = (d: { reason: 'left' | 'disconnected' }) => {
       endChat(d.reason)
     }
@@ -177,9 +198,11 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     }
     // Our own connection dropped and came back.
     const onDisconnect = () => {
+      setLinked(false)
       if (phaseRef.current === 'connected') setStatus({ kind: 'offline' })
     }
     const onConnect = () => {
+      setLinked(true)
       if (phaseRef.current === 'connected' && resumeRef.current) socket.emit('resume', resumeRef.current)
       else if (phaseRef.current === 'searching') {
         socket.emit('join', { mode: 'text', profile: { ...meRef.current, country: countryRef.current }, sameCountry: sameRef.current })
@@ -191,7 +214,16 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     }
     const onResumeFailed = () => {
       start()
-      add('notice', 'You were away for too long, so that chat ended. Searching for a new stranger...')
+      add('notice', 'That chat has ended. Searching for a new stranger...')
+    }
+    // The server ignored our Start (too many in a few seconds): go back to the start screen instead of searching forever
+    const onSlowDown = () => {
+      resetLink()
+      setTyping(false)
+      setPeer(null)
+      setConfirmSkip(false)
+      setMsgs([{ id: Date.now(), from: 'notice', text: 'You are pressing Start too fast. Wait a few seconds and try again.' }])
+      setPhase('idle')
     }
     // Blocked for 3 minutes (banned word): back to the start screen with a notice
     const onBlocked = (d: { ms: number }) => {
@@ -204,7 +236,9 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       setMsgs([{ id: Date.now(), from: 'notice', text: `You are blocked for ${blockText(d.ms)}. Telegram and paid promotions are not allowed here. Please try again after that.` }])
       setPhase('idle')
     }
+    setLinked(socket.connected)
     socket.on('blocked', onBlocked)
+    socket.on('slow-down', onSlowDown)
     socket.on('matched', onMatched)
     socket.on('peer-away', onAway)
     socket.on('peer-back', onBack)
@@ -218,6 +252,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     socket.on('resume-failed', onResumeFailed)
     return () => {
       socket.off('blocked', onBlocked)
+      socket.off('slow-down', onSlowDown)
       socket.off('matched', onMatched)
       socket.off('peer-away', onAway)
       socket.off('peer-back', onBack)
@@ -230,23 +265,16 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       socket.off('resumed', onResumed)
       socket.off('resume-failed', onResumeFailed)
       clearAway()
+      window.clearTimeout(peerTypingTimer.current)
     }
   }, [socket, add, endChat, start, clearAway])
 
   // Phase driver
   useEffect(() => {
     onSearchingChange?.(phase === 'searching')
-    if (phase === 'ended') {
-      setCountdown(AUTO_NEXT)
-      timers.current.push(window.setInterval(() => setCountdown((c) => c - 1), 1000))
-    }
     return clearTimers
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
-
-  useEffect(() => {
-    if (phase === 'ended' && countdown <= 0) start()
-  }, [phase, countdown, start])
 
   useEffect(() => {
     // scroll only the message list (scrollIntoView also scrolls the whole page and pushes the input behind the keyboard)
@@ -257,9 +285,17 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   function onInput(v: string) {
     setDraft(v)
     if (!socket || phase !== 'connected') return
-    socket.emit('typing', true)
+    const now = Date.now()
+    if (!typingOn.current || now - typingSentAt.current > 3000) {
+      typingOn.current = true
+      typingSentAt.current = now
+      socket.emit('typing', true)
+    }
     window.clearTimeout(typingOff.current)
-    typingOff.current = window.setTimeout(() => socket.emit('typing', false), 1500)
+    typingOff.current = window.setTimeout(() => {
+      typingOn.current = false
+      socket.emit('typing', false)
+    }, 1500)
   }
 
   function send(e: FormEvent) {
@@ -271,6 +307,8 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   function sendText(raw: string) {
     const text = raw.trim().slice(0, 500)
     if (!text || phase !== 'connected') return
+    // offline: keep the text in the box (the "You are offline" chip is showing); a message sent now would look sent but never arrive
+    if (!socket || !socket.connected) return
     if (editing) {
       const target = editing
       setMsgs((p) => p.map((x) => (x.id === target.id ? { ...x, text, edited: true } : x)))
@@ -284,6 +322,8 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       setReplyTo(null)
     }
     setDraft('')
+    window.clearTimeout(typingOff.current)
+    typingOn.current = false
     socket?.emit('typing', false)
   }
 
@@ -312,9 +352,25 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   }
 
   function copyText(t: string) {
+    const fallback = () => {
+      // http pages (no clipboard API): old copy method
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = t
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      } catch {}
+    }
     try {
-      void navigator.clipboard?.writeText(t)
-    } catch {}
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(t).catch(fallback)
+      else fallback()
+    } catch {
+      fallback()
+    }
     setMenu(null)
   }
 
@@ -330,6 +386,11 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   leaveToIdleRef.current = leaveToIdle
 
   function skipPress() {
+    // offline: the server could not be told, the other person would wait for us. Wait until we are back online.
+    if (socket && !socket.connected) {
+      setConfirmSkip(false)
+      return
+    }
     if (!confirmSkip) {
       setConfirmSkip(true)
       later(() => setConfirmSkip(false), 3000)
@@ -343,9 +404,9 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
     phase === 'idle' || phase === 'ended'
       ? { label: 'Start', cls: 'bg-[#16a34a]', on: start }
       : phase === 'searching'
-        ? { label: 'Stop', cls: 'bg-[#475569]', on: () => { socket?.emit('stop'); resetLink(); setPhase('idle') } }
+        ? { label: 'Stop', cls: 'bg-[#475569]', on: () => { socket?.emit('stop'); resetLink(); setMsgs([]); setPhase('idle') } }
         : status?.kind === 'away'
-          ? { label: 'Start', cls: 'bg-[#16a34a]', on: () => { socket?.emit('skip'); start() } }
+          ? { label: 'Start', cls: 'bg-[#16a34a]', on: () => { if (socket && !socket.connected) return; socket?.emit('skip'); start() } }
           : confirmSkip
           ? { label: 'Really?', cls: 'bg-[#dc2626]', on: skipPress }
           : { label: 'Skip', cls: 'bg-[#f97316]', on: skipPress }
@@ -355,7 +416,13 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
   const label = peer?.name ?? 'Stranger'
   return (
     <>
-      <BlockNotice until={blockUntil} onDone={() => setBlockUntil(null)} />
+      <BlockNotice
+        until={blockUntil}
+        onDone={() => {
+          setBlockUntil(null)
+          if (phaseRef.current === 'idle') setMsgs([])
+        }}
+      />
       <section aria-label="Messages" className={cn('relative flex min-h-0 flex-1 flex-col lg:rounded-3xl lg:border lg:border-[var(--bd,rgba(255,255,255,0.2))] lg:bg-[var(--tab,rgba(30,35,48,0.9))] lg:p-6', !agreed && 'overflow-y-auto')}>
         {agreed && (phase === 'idle' || phase === 'ended') && (
           <label className="flex w-fit lg:hidden cursor-pointer items-center gap-2 whitespace-nowrap pb-2 pl-1 text-[11px] font-semibold">
@@ -379,6 +446,14 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
         {phase === 'idle' ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
             <ChatIdleAd />
+            {msgs
+              .filter((m) => m.from === 'notice')
+              .slice(-1)
+              .map((m) => (
+                <p key={m.id} role="status" className="max-w-sm text-sm font-semibold text-[var(--notice,#f59e0b)]">
+                  {m.text}
+                </p>
+              ))}
             {agreed && (
               <div className="flex flex-col items-center gap-1">
                 <p className="text-xl font-bold" style={{ color: warn }}>You must be 18+</p>
@@ -390,7 +465,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           <div className="mt-auto flex min-h-0 flex-col gap-2.5 overflow-y-auto px-1 pb-1" aria-live="polite">
             <div className={chip}>
               {phase === 'searching' ? (
-                'Looking for someone to talk to\u2026'
+                linked ? 'Looking for someone to talk to\u2026' : 'Connecting to the server\u2026 this can take up to a minute'
               ) : (
                 <>
                   Connected with <span className="font-semibold text-[#f87171]">{label}</span> from{' '}
@@ -401,7 +476,8 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
             {msgs.map((m) =>
               m.from === 'notice' ? (
                 <p key={m.id} className="px-1 text-left text-[15px] text-[var(--notice,#f59e0b)]">
-                  {m.text} You can press Start for a new chat.
+                  {m.text}
+                  {phase === 'ended' ? ' You can press Start for a new chat.' : ''}
                 </p>
               ) : (
                 <MsgBubble
@@ -499,6 +575,11 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
                 Edit
               </button>
             )}
+            {menu.from !== 'notice' && phase === 'connected' && (
+              <button type="button" onClick={() => { startReply(menu); setMenu(null) }} className="block w-full border-b border-white/10 px-4 py-3.5 active:bg-white/10">
+                Reply
+              </button>
+            )}
             <button type="button" onClick={() => copyText(menu.text)} className="block w-full border-b border-white/10 px-4 py-3.5 active:bg-white/10">
               Copy
             </button>
@@ -534,9 +615,16 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
           disabled={phase !== 'connected'}
           onChange={(e) => {
             const v = e.target.value
-            // Enter key (soft keyboard or Shift+Enter) arrives as a new line: send instead
-            if (v.includes('\n')) sendText(v.replace(/\n/g, ' '))
-            else onInput(v)
+            if (v.includes('\n')) {
+              const kind = (e.nativeEvent as InputEvent).inputType
+              if (typeof kind === 'string' && /^insertFrom(Paste|Drop|Yank)/.test(kind)) {
+                // pasted / dropped text with line breaks: keep it as one line in the box, do not send yet
+                onInput(v.replace(/\s*\n\s*/g, ' '))
+              } else {
+                // Enter key (soft keyboard or Shift+Enter) arrives as a new line: send instead
+                sendText(v.replace(/\n/g, ' '))
+              }
+            } else onInput(v)
           }}
           maxLength={500}
           placeholder="Type a message..."
@@ -647,10 +735,11 @@ function MsgBubble({ m, label, cls, onReply, onHold }: { m: Msg; label: string; 
         onPointerMove={move}
         onPointerUp={end}
         onPointerCancel={end}
-        onContextMenu={(e) => e.preventDefault()}
-        style={{ transform: dx ? `translateX(${dx}px)` : undefined, touchAction: 'pan-y', WebkitTouchCallout: 'none', userSelect: 'none' } as CSSProperties}
+        onContextMenu={(e) => { e.preventDefault(); onHold() }}
+        style={{ transform: dx ? `translateX(${dx}px)` : undefined, touchAction: 'pan-y', WebkitTouchCallout: 'none' } as CSSProperties}
         className={cn(
           cls,
+          '[@media(pointer:coarse)]:select-none', // only touch screens block selection (long-press opens the menu there)
           mine ? 'bg-[var(--sent,#2563eb)] text-[var(--sent-ink,#ffffff)]' : 'bg-[var(--recv,#1e293b)] text-[var(--recv-ink,#f1f5f9)]',
           dx === 0 && 'transition-transform',
         )}
