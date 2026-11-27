@@ -51,10 +51,23 @@ export function useUserCountry() {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
       return TZ[tz] ?? null
     }
-    fetch('/api/country')
-      .then((r) => r.json())
-      .then((d) => alive && setCountry(d.country ?? guess()))
-      .catch(() => alive && setCountry(guess()))
+    // 1) /api/country (hosts that have it)  2) Cloudflare's own /cdn-cgi/trace (any site on Cloudflare)  3) time zone guess
+    const fromApi = () =>
+      fetch('/api/country')
+        .then((r) => r.json())
+        .then((d) => (typeof d.country === 'string' && /^[A-Z]{2}$/.test(d.country) ? d.country : null))
+        .catch(() => null)
+    const fromTrace = () =>
+      fetch('/cdn-cgi/trace')
+        .then((r) => r.text())
+        .then((t) => {
+          const m = /^loc=([A-Z]{2})$/m.exec(t)
+          return m && m[1] !== 'XX' && m[1] !== 'T1' ? m[1] : null
+        })
+        .catch(() => null)
+    fromApi()
+      .then((c) => c ?? fromTrace())
+      .then((c) => alive && setCountry(c ?? guess()))
     return () => {
       alive = false
     }
