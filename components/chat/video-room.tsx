@@ -368,7 +368,7 @@ export function VideoRoom({ identity, me, country }: { identity: Identity; me: P
       setMsgs([])
       setTyping(false)
       setPhase('idle')
-      flash(`You are blocked for ${blockText(d.ms)}. Telegram and paid promotions are not allowed here.`, 6000)
+      flash(`You are blocked for ${blockText(d.ms)}. Sharing social media names or paid promotions is not allowed here.`, 6000)
     }
     socket.on('blocked', onBlocked)
     socket.on('slow-down', onSlowDown)

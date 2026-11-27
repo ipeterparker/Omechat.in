@@ -113,7 +113,7 @@ function normalizeText(s) {
 }
 
 // One letter -> the characters that can stand for it (a=4/@, e=3, i=1/!/|, l=1/|/!, t=7/+, g=9/6), repeats allowed.
-const CLS = { t: '[t7+]', e: '[e3€£]', l: '[l1|!]', g: '[g96]', r: 'r', a: '[a4@]', m: 'm', p: 'p', i: '[i1!|]', d: 'd' }
+const CLS = { t: '[t7+]', e: '[e3€£]', l: '[l1|!]', g: '[g96]', r: 'r', a: '[a4@]', m: 'm', p: 'p', i: '[i1!|]', d: 'd', s: '[s5$]', o: '[o0]', b: '[b8]' }
 const SEP = '[^a-z0-9@|!+]' // spaces, dots, dashes, underscores, emoji ... anything between letters
 // NOTE: the optional group takes ONE letter per round (not `letter+` inside `(...)*`): a quantifier inside a quantifier
 // makes the regex exponentially slow on input like "tel" + "eeeeeeeeeeeeeeeeeeee" + "x" and would freeze the whole server.
@@ -125,6 +125,45 @@ const PATTERNS = [
   // short forms: "tg", "t.g", "t.me"
   /(?<![a-z0-9])t[.\-_*]{0,2}g(?![a-z0-9])/g,
   /(?<![a-z0-9])t\s?\.\s?me(?![a-z])/g,
+]
+// Other social media / chat apps: Instagram, Snapchat, WhatsApp, Facebook, Discord, TikTok, YouTube, Twitter, OnlyFans, Skype, Viber, WeChat, Kik.
+// Same tricks as telegram: symbols between the letters (in,sta  s.n.a.p), missing vowels (snpcht, wtsp), look-alike letters (sn@pchat, 1nsta).
+// W('i?nsta') = letters in order; a letter followed by ? may be left out (vowels).
+const W = (skel) => {
+  const toks = []
+  for (let i = 0; i < skel.length; i++) {
+    const opt = skel[i + 1] === '?'
+    toks.push([skel[i], opt])
+    if (opt) i++
+  }
+  return toks
+    .map(([c, opt], i) => {
+      const cls = CLS[c] || c
+      if (opt) return `(?:${cls}${SEP}*)?`
+      return i === toks.length - 1 ? `${cls}+` : `${cls}+${SEP}*`
+    })
+    .join('')
+}
+const ALONE = (re) => '(?<![a-z])' + re + '(?![a-z])' // the name must not sit inside another word (insta is not "instant")
+const SOCIAL_PATTERNS = [
+  new RegExp(W('i?nsta?gra?m'), 'g'), // instagram, instgrm, insta gram, nstgrm
+  new RegExp(ALONE(W('insta')), 'g'), // insta, in,sta, i.n.s.t.a   (not instant / instance / install)
+  /(?<![a-z0-9])ig(?![a-z0-9])/g, // ig
+  new RegExp(W('sna?pcha?t'), 'g'), // snapchat, snpcht, sn@pchat, s.n.a.p.c.h.a.t
+  new RegExp(ALONE(W('snap')), 'g'), // snap  (not snapshot / snapped)
+  new RegExp(W('wh?a?tsa?p'), 'g'), // whatsapp, whtsp, wtsp, whatsap
+  new RegExp(W('fa?ce?bo?o?k'), 'g'), // facebook, fcbk, face book
+  /(?<![a-z0-9])fb(?![a-z0-9])/g, // fb
+  new RegExp(W('di?sco?rd'), 'g'), // discord, dscrd
+  new RegExp(W('ti?kto?k'), 'g'), // tiktok, tktok
+  new RegExp(W('yo?u?tu?b') + 'e*', 'g'), // youtube, ytube, you tube
+  /(?<![a-z0-9])yt(?![a-z0-9])/g, // yt
+  new RegExp(W('twi?te?r'), 'g'), // twitter, twtr
+  new RegExp(W('onlyfa?ns'), 'g'), // onlyfans, only fans
+  new RegExp(ALONE(W('skyp') + 'e?'), 'g'), // skype, skyp
+  new RegExp(ALONE(W('vibe?r')), 'g'), // viber (not vibrate)
+  /(?<![a-z])wechat(?![a-z])/g, // wechat (written apart "we chat" is a normal sentence, so it is not caught)
+  /(?<![a-z0-9])kik(?![a-z])/g, // kik
 ]
 // "paid" is only blocked together with service / promotion / ads (so "I paid", "unpaid", "prepaid" are fine).
 // Works with symbols too: p@id s3rvice, p.a.i.d promo, paid s€rvices, "services are paid" ...
@@ -160,7 +199,7 @@ function hasBannedWord(text) {
     re.lastIndex = 0
     if (re.test(t)) return true
   }
-  for (const re of PATTERNS) {
+  for (const re of [...PATTERNS, ...SOCIAL_PATTERNS]) {
     re.lastIndex = 0
     let m
     while ((m = re.exec(t))) {
@@ -182,12 +221,24 @@ setInterval(() => {
   for (const [k, until] of bans) if (until <= now) bans.delete(k)
 }, 60 * 1000).unref()
 
+// The visitor's real IP ('' if it cannot be told). Addresses inside the host's own network are ignored, so a proxy can never make everybody look the same.
+const PRIVATE_IP = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.|::1$|f[cd][0-9a-f]{2}:|fe80:|localhost)/i
+function ipOf(s) {
+  const h = (s.handshake && s.handshake.headers) || {}
+  const first = (v) => String(Array.isArray(v) ? v[0] : v || '').split(',')[0].trim().replace(/^::ffff:/, '')
+  for (const c of [first(h['cf-connecting-ip']), first(h['true-client-ip']), first(h['x-forwarded-for']), first(s.handshake && s.handshake.address)]) {
+    if (c && !PRIVATE_IP.test(c)) return c.slice(0, 64)
+  }
+  return ''
+}
+
+// Who is blocked: the IP address (a new browser or a new device id does not help). If the IP cannot be told, the device id is used.
 function banKeys(s) {
-  const keys = []
+  const ip = ipOf(s)
+  if (ip) return ['ip:' + ip]
   const cid = s.handshake.auth && s.handshake.auth.cid
-  if (typeof cid === 'string' && cid) keys.push('cid:' + cid.slice(0, 64))
-  else keys.push('sock:' + s.id) // no device id available: block at least this connection
-  return keys
+  if (typeof cid === 'string' && cid) return ['cid:' + cid.slice(0, 64)]
+  return ['sock:' + s.id] // no id available: block at least this connection
 }
 
 // Milliseconds still left on this person's block (0 = not blocked)
@@ -270,8 +321,7 @@ setInterval(() => {
 // Returns true when this banned word should lead to a block now.
 function shouldBlock(s) {
   if (s.data.mode === 'video') return false // video chat: no word block
-  const cid = s.handshake.auth && s.handshake.auth.cid
-  const key = typeof cid === 'string' && cid ? 'cid:' + cid.slice(0, 64) : 'sock:' + s.id
+  const key = banKeys(s)[0]
   const now = Date.now()
   const list = (strikes.get(key) || []).filter((x) => now - x.t < STRIKE_WINDOW_MS)
   const room = s.data.room ? s.data.room.id : 'none'
@@ -287,10 +337,11 @@ function shouldBlock(s) {
 // Banned word used: end their chat, take them out of the queue and block them for 3 minutes (every time it happens again, a fresh 3 minutes).
 function punish(s, where) {
   const until = Date.now() + BLOCK_MS
-  for (const k of banKeys(s)) bans.set(k, until)
+  const keys = banKeys(s)
+  for (const k of keys) bans.set(k, until)
   removeFromQueue(s)
   leavePeer(s, 'left')
-  console.log('BLOCKED', new Date().toISOString(), where, banKeys(s).join(' '))
+  console.log('BLOCKED', new Date().toISOString(), where, keys.join(' '))
   s.emit('blocked', { ms: BLOCK_MS })
 }
 // True (and tells them) if this person is still inside a block.

@@ -233,7 +233,7 @@ export function MessagePanel({ me, country, onSearchingChange, theme, sameCountr
       setPeer(null)
       setConfirmSkip(false)
       setStatus(null)
-      setMsgs([{ id: Date.now(), from: 'notice', text: `You are blocked for ${blockText(d.ms)}. Telegram and paid promotions are not allowed here. Please try again after that.` }])
+      setMsgs([{ id: Date.now(), from: 'notice', text: `You are blocked for ${blockText(d.ms)}. Sharing social media names or paid promotions is not allowed here. Please try again after that.` }])
       setPhase('idle')
     }
     setLinked(socket.connected)
