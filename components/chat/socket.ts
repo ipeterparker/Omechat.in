@@ -3,7 +3,7 @@
 import { io, type Socket } from 'socket.io-client'
 
 // Set NEXT_PUBLIC_SOCKET_URL (in .env.local) to your Render server. Without it the site runs in demo mode.
-export const SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_URL
+export const SERVER_URL = (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://omechat-live-server.onrender.com')
 
 let socket: Socket | null = null
 
