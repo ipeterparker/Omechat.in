@@ -30,7 +30,7 @@ export function SeoSection() {
       <ul className="mt-3 flex flex-wrap gap-2">
         {PAGES.map((p) => (
           <li key={p.slug}>
-            <Link href={`/${p.slug}`} className="inline-block rounded-full border bg-card/70 px-4 py-2 text-sm font-semibold">
+            <Link prefetch={false} href={`/${p.slug}`} className="inline-block rounded-full border bg-card/70 px-4 py-2 text-sm font-semibold">
               {p.h1.split(':')[0].split(',')[0]}
             </Link>
           </li>

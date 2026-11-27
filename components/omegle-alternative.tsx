@@ -108,9 +108,9 @@ export function OmegleAlternative() {
           <p>
             Never share your phone number, address, passwords or money details with a stranger. Use Skip or Report if a chat
             feels wrong. Read our{' '}
-            <Link href="/guidelines" className="underline">community guidelines</Link>,{' '}
-            <Link href="/terms" className="underline">terms</Link> and{' '}
-            <Link href="/privacy" className="underline">privacy policy</Link> before you start.
+            <Link prefetch={false} href="/guidelines" className="underline">community guidelines</Link>,{' '}
+            <Link prefetch={false} href="/terms" className="underline">terms</Link> and{' '}
+            <Link prefetch={false} href="/privacy" className="underline">privacy policy</Link> before you start.
           </p>
         </Row>
 
@@ -123,10 +123,10 @@ export function OmegleAlternative() {
 
       <p className="mt-6 text-sm text-muted-foreground">
         More:{' '}
-        <Link href="/omegle-alternative" className="underline">Omegle alternative</Link>,{' '}
-        <Link href="/random-video-chat" className="underline">random video chat</Link>,{' '}
-        <Link href="/random-text-chat" className="underline">random text chat</Link>,{' '}
-        <Link href="/india-random-chat" className="underline">random chat India</Link>.
+        <Link prefetch={false} href="/omegle-alternative" className="underline">Omegle alternative</Link>,{' '}
+        <Link prefetch={false} href="/random-video-chat" className="underline">random video chat</Link>,{' '}
+        <Link prefetch={false} href="/random-text-chat" className="underline">random text chat</Link>,{' '}
+        <Link prefetch={false} href="/india-random-chat" className="underline">random chat India</Link>.
       </p>
 
       <JsonLd data={faqLd} />

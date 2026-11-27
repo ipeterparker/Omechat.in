@@ -45,7 +45,7 @@ export function SiteHeader() {
         </button>
 
         <div className="flex items-center gap-2 lg:contents">
-          <Link
+          <Link prefetch={false}
             href="/"
             className="flex h-[38px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full border bg-card/70 pl-[13px] pr-[18px] font-bold tracking-tight backdrop-blur-xl lg:order-1 lg:h-11 lg:text-lg"
           >
@@ -66,7 +66,7 @@ export function SiteHeader() {
 
         <nav aria-label="Main" className="hidden flex-1 items-center gap-7 text-base font-semibold text-muted-foreground lg:order-2 lg:flex">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className={n.href === path ? 'text-foreground' : 'transition-colors hover:text-foreground'}>
+            <Link prefetch={false} key={n.href} href={n.href} className={n.href === path ? 'text-foreground' : 'transition-colors hover:text-foreground'}>
               {n.label}
             </Link>
           ))}

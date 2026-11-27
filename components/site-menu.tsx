@@ -106,7 +106,7 @@ export function SiteMenu({ open, onOpenChange }: Props) {
         </div>
 
         {google && (
-          <Link href="/profile" onClick={close} className="mb-3 flex items-center gap-3 rounded-2xl border border-border p-3">
+          <Link prefetch={false} href="/profile" onClick={close} className="mb-3 flex items-center gap-3 rounded-2xl border border-border p-3">
             <Avatar name={profile?.name ?? google.name} photo={profile?.photo || google.picture} size={44} />
             <span className="min-w-0">
               <span className="block truncate font-bold">{profile?.name ?? google.name}</span>
@@ -118,7 +118,7 @@ export function SiteMenu({ open, onOpenChange }: Props) {
         <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
           {items.map(({ href, label, icon }) => (
             <li key={href}>
-              <Link href={href} onClick={close} className="flex h-12 items-center gap-3 rounded-2xl px-3 text-base font-semibold active:bg-foreground/10">
+              <Link prefetch={false} href={href} onClick={close} className="flex h-12 items-center gap-3 rounded-2xl px-3 text-base font-semibold active:bg-foreground/10">
                 <span aria-hidden="true" className="w-6 text-center text-xl leading-none">{icon}</span>
                 {label}
               </Link>

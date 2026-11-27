@@ -21,14 +21,14 @@ export function SeoLanding({ page }: { page: SeoPage }) {
   return (
     <article className="mx-auto w-full max-w-3xl px-4 py-10">
       <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted-foreground">
-        <Link href="/" className="underline">{SITE_NAME}</Link> / {page.slug.replace(/-/g, ' ')}
+        <Link prefetch={false} href="/" className="underline">{SITE_NAME}</Link> / {page.slug.replace(/-/g, ' ')}
       </nav>
       <h1 className="text-balance text-3xl font-extrabold tracking-tight sm:text-4xl">{page.h1}</h1>
       <p className="mt-4 text-lg text-muted-foreground">{page.intro}</p>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
-        <Link href="/chat?mode=text" className="flex h-12 items-center justify-center rounded-2xl border bg-card font-bold">Text Chat</Link>
-        <Link href="/chat?mode=video" className="flex h-12 items-center justify-center rounded-2xl bg-[#2563eb] font-bold text-white">Video Chat</Link>
+        <Link prefetch={false} href="/chat?mode=text" className="flex h-12 items-center justify-center rounded-2xl border bg-card font-bold">Text Chat</Link>
+        <Link prefetch={false} href="/chat?mode=video" className="flex h-12 items-center justify-center rounded-2xl bg-[#2563eb] font-bold text-white">Video Chat</Link>
       </div>
 
       <h2 className="mt-10 text-xl font-bold">How it works</h2>
@@ -57,15 +57,15 @@ export function SeoLanding({ page }: { page: SeoPage }) {
       </div>
 
       <p className="mt-10 text-sm text-muted-foreground">
-        You must be 18 or older. Read our <Link href="/guidelines" className="underline">guidelines</Link>,{' '}
-        <Link href="/privacy" className="underline">privacy policy</Link> and <Link href="/terms" className="underline">terms</Link>.
+        You must be 18 or older. Read our <Link prefetch={false} href="/guidelines" className="underline">guidelines</Link>,{' '}
+        <Link prefetch={false} href="/privacy" className="underline">privacy policy</Link> and <Link prefetch={false} href="/terms" className="underline">terms</Link>.
       </p>
 
       <h2 className="mt-10 text-lg font-bold">More ways to chat</h2>
       <ul className="mt-3 flex flex-wrap gap-2">
         {others.map((p) => (
           <li key={p.slug}>
-            <Link href={`/${p.slug}`} className="inline-block rounded-full border bg-card/70 px-4 py-2 text-sm font-semibold">
+            <Link prefetch={false} href={`/${p.slug}`} className="inline-block rounded-full border bg-card/70 px-4 py-2 text-sm font-semibold">
               {p.h1.split(':')[0].split(',')[0]}
             </Link>
           </li>

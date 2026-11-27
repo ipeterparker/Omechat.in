@@ -65,7 +65,7 @@ export function Hero() {
         </div>
       </fieldset>
 
-      <Link
+      <Link prefetch={false}
         href={`/chat?mode=${mode}`}
         className="group relative mx-auto mt-6 flex h-14 w-full max-w-sm overflow-hidden lg:mx-0 lg:h-16 lg:max-w-md rounded-2xl p-[1.5px] shadow-[0_10px_40px_-16px_color-mix(in_oklab,var(--primary)_49%,transparent)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:translate-y-0"
       >

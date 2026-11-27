@@ -110,7 +110,7 @@ export function LoginModal({ onPick }: { onPick: (i: Identity) => void }) {
         </button>
         {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
 
-        <Link
+        <Link prefetch={false}
           href="/chat?mode=text"
           className="mt-3.5 flex h-[46px] w-full items-center justify-center rounded-2xl border border-border text-[15px] font-semibold opacity-85 transition-opacity hover:opacity-100"
         >
@@ -119,8 +119,8 @@ export function LoginModal({ onPick }: { onPick: (i: Identity) => void }) {
 
         <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
           By continuing, you confirm you are 18+ and agree to our{' '}
-          <Link href="/terms" className="underline underline-offset-2">Terms</Link> and{' '}
-          <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
+          <Link prefetch={false} href="/terms" className="underline underline-offset-2">Terms</Link> and{' '}
+          <Link prefetch={false} href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
         </p>
       </div>
 

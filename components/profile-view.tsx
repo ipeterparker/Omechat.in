@@ -35,7 +35,7 @@ export function ProfileView() {
       <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-lg font-bold">Profile is for Google accounts</p>
         <p className="text-sm text-muted-foreground">Sign in with Google on the chat page to create your profile.</p>
-        <Link href="/chat?mode=text" className="rounded-full bg-[#4f7cff] px-6 py-3 font-bold text-white">Go to chat</Link>
+        <Link prefetch={false} href="/chat?mode=text" className="rounded-full bg-[#4f7cff] px-6 py-3 font-bold text-white">Go to chat</Link>
       </div>
     )
   }
