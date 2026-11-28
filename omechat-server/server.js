@@ -352,16 +352,21 @@ function stillBlocked(s) {
   return true
 }
 
+// "Same Country" is a preference: if nobody from the same country shows up within this time, the person is matched with anyone.
+const SAME_COUNTRY_WAIT_MS = Number(process.env.SAME_COUNTRY_WAIT_MS) || 15000
+
 function compatible(a, b) {
   if (a.data.mode !== b.data.mode) return false
   if (blocked.get(a.id)?.has(b.id) || blocked.get(b.id)?.has(a.id)) return false
   // "same country only" counts only for a person whose country is known (otherwise they could never match)
-  const wants = (x) => x.data.sameCountry && x.data.profile.country
+  const waitedLong = (x) => Date.now() - (x.data.queuedAt || 0) >= SAME_COUNTRY_WAIT_MS
+  const wants = (x) => x.data.sameCountry && x.data.profile.country && !waitedLong(x)
   const same = wants(a) || wants(b)
   if (same) {
     const ca = a.data.profile.country
     const cb = b.data.profile.country
-    if (!ca || !cb || ca !== cb) return false
+    // only two KNOWN, different countries block a match; a person whose country is unknown can match with anyone
+    if (ca && cb && ca !== cb) return false
   }
   return true
 }
@@ -387,6 +392,11 @@ function tryMatch(s) {
   s.emit('matched', { peer: other.data.profile, initiator: false, room: { id: room.id, token: ms.token } })
 }
 
+// People already waiting are re-checked every 3 seconds, so the "Same Country" wait above ends even when nobody new joins.
+setInterval(() => {
+  for (const s of [...queue]) if (queue.includes(s)) tryMatch(s)
+}, 3000).unref()
+
 io.on('connection', (socket) => {
   socket.data = { member: null, room: null, mode: 'text', sameCountry: false, profile: clean() }
   socket.emit('online', { count: io.engine.clientsCount })
@@ -406,6 +416,7 @@ io.on('connection', (socket) => {
     socket.data.mode = d.mode === 'video' ? 'video' : 'text'
     socket.data.sameCountry = !!d.sameCountry
     socket.data.profile = clean(d.profile)
+    socket.data.queuedAt = Date.now()
     queue.push(socket)
     tryMatch(socket)
   })
