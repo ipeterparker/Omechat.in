@@ -17,7 +17,7 @@ export default function FaqPage() {
     mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
   }
   return (
-    <LegalPage title="Frequently asked questions" updated="November 2026">
+    <LegalPage title="Frequently asked questions" updated="November 2026" plain>
       {faq.map((f) => (
         <div key={f.q} className="flex flex-col gap-1">
           <h2>{f.q}</h2>
