@@ -23,7 +23,7 @@ export function SeoSection() {
       <p className="mt-3 text-muted-foreground">
         {SITE_NAME} is a free random chat site. Join a random text chat or a random video chat, talk to strangers from
         around the world, and skip to someone new whenever you like. No signup is needed, and you can turn on Same Country
-        to meet people from your own country. It is a simple Omegle alternative made for phones.
+        to meet people from your own country. It is a simple Omegle alternative made for phones, for anyone who wants stranger chat, anonymous chat or a new way to meet new people online.
       </p>
 
       <h3 className="mt-8 text-lg font-semibold">Popular pages</h3>

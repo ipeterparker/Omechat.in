@@ -221,22 +221,9 @@ setInterval(() => {
   for (const [k, until] of bans) if (until <= now) bans.delete(k)
 }, 60 * 1000).unref()
 
-// The visitor's real IP ('' if it cannot be told). Addresses inside the host's own network are ignored, so a proxy can never make everybody look the same.
-const PRIVATE_IP = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.|::1$|f[cd][0-9a-f]{2}:|fe80:|localhost)/i
-function ipOf(s) {
-  const h = (s.handshake && s.handshake.headers) || {}
-  const first = (v) => String(Array.isArray(v) ? v[0] : v || '').split(',')[0].trim().replace(/^::ffff:/, '')
-  for (const c of [first(h['cf-connecting-ip']), first(h['true-client-ip']), first(h['x-forwarded-for']), first(s.handshake && s.handshake.address)]) {
-    if (c && !PRIVATE_IP.test(c)) return c.slice(0, 64)
-  }
-  return ''
-}
-
-// Who is blocked: the IP address (a new browser or a new device id does not help). If the IP cannot be told, the device id is used.
+// Who is blocked: the device (the id kept in the visitor's browser).
 function banKeys(s) {
-  const ip = ipOf(s)
-  if (ip) return ['ip:' + ip]
-  const cid = s.handshake.auth && s.handshake.auth.cid
+  const cid = s.handshake && s.handshake.auth && s.handshake.auth.cid
   if (typeof cid === 'string' && cid) return ['cid:' + cid.slice(0, 64)]
   return ['sock:' + s.id] // no id available: block at least this connection
 }

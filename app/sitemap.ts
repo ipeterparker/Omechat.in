@@ -4,7 +4,7 @@ import { PAGES, SITE_URL } from '@/lib/seo'
 export const dynamic = 'force-static'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date('2026-11-27')
+  const now = new Date('2026-11-28')
   return [
     { url: SITE_URL, lastModified: now, changeFrequency: 'weekly', priority: 1 },
     ...PAGES.map((p) => ({ url: `${SITE_URL}/${p.slug}`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.8 })),

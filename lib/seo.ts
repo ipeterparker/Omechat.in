@@ -29,6 +29,10 @@ export const KEYWORDS = [
   'chat with strangers', 'chat with strangers online', 'video chat with strangers', 'text chat with strangers', 'stranger chat',
   'anonymous chat', 'anonymous video chat', 'free chat no signup', 'chat without login', 'free random chat', 'online chat rooms',
   'meet new people online', 'same country chat', 'Indian random chat', 'chat with Indian strangers',
+  'chat', 'stranger', 'strangers chat', 'chat random', 'talk to random people', 'talk to someone online', 'make new friends online',
+  'omegle talk', 'omegle talk to strangers', 'omegle stranger chat', 'omegle random chat', 'omegle india', 'ome chat', 'omechat com',
+  'free video chat with strangers', 'free text chat with strangers', 'chat with girls and boys online', 'random chat no login',
+  'anonymous chat online', 'chat app without registration', 'hinglish chat', 'chat with Indians online',
 ]
 
 export const OMEGLE_FAQ: FAQ[] = [
@@ -37,6 +41,15 @@ export const OMEGLE_FAQ: FAQ[] = [
   { q: 'Is there an Omegle alternative for India?', a: 'Yes. Turn on Same Country in Omechat and you will be matched only with people from India, so it works as a random chat India site and an Omegle alternative for Indian users. You can chat in English, Hindi or Hinglish, free on Android, iPhone and laptop.' },
   { q: 'Why did people look for Omegle alternatives?', a: 'Omegle shut down in November 2023, so many people started looking for Omegle alternatives: similar sites to talk to strangers, make new friends and have random video chat or text chat online. Omechat is built for the same need, with an 18+ rule and a Report button.' },
   { q: 'Does Omechat work on mobile?', a: 'Yes. Omechat works in the browser on Android and iPhone and on laptops, so there is no app to download. Open omechat.in, pick text chat or video chat, tap Start and talk to strangers for free.' },
+  { q: 'Is Omegle back, and what replaced it?', a: 'Omegle closed in November 2023 and the original site is not available. Websites like Omegle, such as Omechat, took its place for people who want to talk to strangers online. Omechat is an independent site, not connected to Omegle, with random text chat, random video chat, a Skip button and a Report button.' },
+  { q: 'What is stranger chat?', a: 'Stranger chat means talking to a random person you have never met, usually without sharing your name. On Omechat you tap Start, get matched with a stranger, chat by text or video, and tap Skip to meet someone else. Keep your personal details private and use Skip or Report if a chat feels wrong.' },
+  { q: 'Can I chat with strangers without login or registration?', a: 'Yes. Text chat on Omechat works without login: continue anonymously, tap Start and chat with a stranger for free. Signing in with Google is optional and is used for a profile and for video chat.' },
+  { q: 'Is Omechat free?', a: 'Yes. Omechat is free to use. There is no payment to start a random text chat or video chat. The site shows ads to cover its running costs.' },
+  { q: 'Is text chat or video chat better?', a: 'Text chat is more private because it needs no camera or microphone, so it is the easiest way to start. Video chat is more personal because you see and hear the other person. You can use both on Omechat, and you can skip to a new stranger in either one.' },
+  { q: 'How can I talk to strangers online safely?', a: 'Do not share your phone number, address, passwords, bank details or private photos. Never send money. Use Skip to leave any chat in one tap and Report to flag rule breakers. Remember that anyone can record their screen, and that Omechat is for adults aged 18 and above.' },
+  { q: 'Does Omechat have chat rooms?', a: 'No. Omechat connects you one to one with a random stranger instead of putting you in a public room. Tap Start for a new person and Skip to move on, in text chat or video chat.' },
+  { q: 'Can I make new friends on Omechat?', a: 'Yes. Many people use random chat to meet new people. If you sign in with Google you can send a friend request to someone you enjoyed talking to. Be kind, respect the other person, and never share private details too soon.' },
+  { q: 'Can I chat in Hindi or Hinglish?', a: 'Yes. You can write in English, Hindi or Hinglish. Turn on Same Country if you want to be matched with people from India.' },
 ]
 
 export const HOME_FAQ: FAQ[] = [
@@ -49,7 +62,8 @@ export const HOME_FAQ: FAQ[] = [
 
 export const SAFETY_FAQ: FAQ[] = [
   { q: 'Is Omechat safe?', a: 'Omechat has safety tools: Skip leaves any chat in one tap, Report lets you flag a user in video chat, and spammers are blocked automatically. But like every random chat website, you talk to real strangers and no site can guarantee that every user is well behaved, so keep your personal details private and use Skip and Report whenever something feels wrong.' },
-  { q: 'Can the other person record my video chat?', a: 'Yes, it is possible. Any person can take a screenshot or record the screen on their own device and Omechat cannot stop that. Do not show your face, documents or private things if you are not comfortable with them being saved.' },
+  { q: 'Can other users record my video chat?', a: 'Other users could record their own screen, so only show what you are comfortable with. A website cannot stop screen recording or screenshots on someone else\'s device.' },
+  { q: 'What should I keep private on video chat?', a: 'Do not show private things. Other users may record their screen. Keep your ID, documents, home address, school or workplace details and private photos out of view, and never share personal details with a stranger. Use Skip to leave any chat in one tap and Report if someone breaks the rules.' },
   { q: 'What should I do if someone asks for money or threatens me?', a: 'Stop replying, do not send money, photos or videos, take a screenshot as proof, use Report and tell a trusted person. In India you can report cyber crime at cybercrime.gov.in or call 1930.' },
   { q: 'Is Omechat safe for minors?', a: 'No. Omechat is for people aged 18 and above only. You must confirm your age before you start, but we do not check ID, so parents and guardians should make sure children do not use random chat websites.' },
 ]
@@ -161,6 +175,114 @@ export const PAGES: SeoPage[] = [
       { q: 'How does Same Country work?', a: 'Omechat checks your country and only matches you with people from the same country when this option is on.' },
       { q: 'Can I chat in Hindi?', a: 'Yes, you can chat in any language you like, including Hindi and Hinglish.' },
       { q: 'Is it free in India?', a: 'Yes, Omechat is free to use.' },
+    ],
+  },
+  {
+    slug: 'chat-with-strangers',
+    title: 'Chat with Strangers Online: Free, Anonymous | Omechat',
+    description: 'Chat with strangers online for free on Omechat. Random text or video chat, no signup needed, Skip in one tap, Report button and 18+ rules.',
+    h1: 'Chat with strangers online, free and anonymous',
+    intro: 'Want to chat with strangers online? Omechat pairs you with a random person in seconds. Type a message or switch on your camera, and tap Skip whenever you want someone new.',
+    steps: ['Open Omechat and choose Text Chat or Video Chat.', 'Continue anonymously. No account is needed for text chat.', 'Tap Start to meet a stranger and Skip to meet the next one.'],
+    points: [
+      { title: 'Anonymous by default', text: 'You do not need to give your name, phone number or email to start a text chat.' },
+      { title: 'One to one chats', text: 'You talk to one stranger at a time, not a crowded public room.' },
+      { title: 'You can leave anytime', text: 'Skip ends a chat at once, and Report helps keep the site clean.' },
+    ],
+    faq: [
+      { q: 'How do I chat with strangers on Omechat?', a: 'Open omechat.in, pick Text Chat or Video Chat, continue anonymously and tap Start. You are matched with a random person.' },
+      { q: 'Is it free to chat with strangers here?', a: 'Yes. Omechat is free to use.' },
+      { q: 'Can I stay anonymous?', a: 'Yes. Anonymous mode needs no name. Never share personal details with a stranger.' },
+    ],
+  },
+  {
+    slug: 'stranger-chat',
+    title: 'Stranger Chat: Meet Random People Online Free | Omechat',
+    description: 'Stranger chat made simple. Meet random people online with free text or video chat on Omechat. No signup for text chat, 18+ only, Skip anytime.',
+    h1: 'Stranger chat: meet random people online',
+    intro: 'Stranger chat is the simple idea of talking to someone you have never met. Omechat makes it quick: tap Start, say hi, and Skip if the chat is not for you.',
+    steps: ['Open Omechat on your phone or laptop.', 'Pick text or video and tap Start.', 'Chat, Skip or Report. You decide how long each chat lasts.'],
+    points: [
+      { title: 'Fast matching', text: 'You are connected to a random stranger as soon as one is available.' },
+      { title: 'Text or video', text: 'Type if you want privacy, or use video if you want to see who you talk to.' },
+      { title: 'Rules for everyone', text: 'Explicit content, hate and harassment are not allowed, and spammers are blocked automatically.' },
+    ],
+    faq: [
+      { q: 'What is a stranger chat site?', a: 'It is a website where you are matched with a random person to talk to. Omechat is one, with text chat and video chat.' },
+      { q: 'Is stranger chat safe?', a: 'No random chat is risk free. Keep your details private, never send money and use Skip or Report when something feels wrong.' },
+      { q: 'Who can use Omechat?', a: 'Only people aged 18 and above.' },
+    ],
+  },
+  {
+    slug: 'omegle-video-chat',
+    title: 'Omegle Video Chat Alternative: Free Random Video Chat | Omechat',
+    description: 'Looking for Omegle video chat? Omechat is a free random video chat alternative with split-screen video, one-tap Next and a Report button. 18+ only.',
+    h1: 'Omegle video chat alternative for your phone',
+    intro: 'If you used Omegle for video chat, Omechat gives you a similar way to meet new people face to face. See a stranger on the top half of your screen, yourself on the bottom half, and tap Next for someone new. Omechat is an independent site and is not connected to Omegle.',
+    steps: ['Open Video Chat and allow your camera and microphone.', 'Tap Start to be matched with a stranger.', 'Tap Next to meet someone else, or Report if someone breaks the rules.'],
+    points: [
+      { title: 'Made for phones', text: 'The split-screen layout fits a phone screen, in the browser, with no app to install.' },
+      { title: 'Own controls', text: 'Mute, camera off and flip camera only change your own video.' },
+      { title: 'Report and block', text: 'Report anyone who breaks the rules and you will not be matched with them again.' },
+    ],
+    faq: [
+      { q: 'Is there a free Omegle video chat alternative?', a: 'Yes. Omechat offers free random video chat with strangers in your browser.' },
+      { q: 'Do I need to install an app?', a: 'No. Omechat works in the browser on Android, iPhone and laptops.' },
+      { q: 'Can someone record my video?', a: 'Other users could record their own screen, so only show what you are comfortable with. Do not show private things.' },
+    ],
+  },
+  {
+    slug: 'omegle-text-chat',
+    title: 'Omegle Text Chat Alternative: Free Random Text Chat | Omechat',
+    description: 'Omegle text chat alternative. Free random text chat with strangers on Omechat. No signup, typing indicator, chat themes, Skip anytime. 18+ only.',
+    h1: 'Omegle text chat alternative, no signup',
+    intro: 'Missing Omegle text chat? Omechat lets you type to a random stranger without a camera, an account or an app. You see when they are typing, and you can Skip to a new person in one tap. Omechat is not connected to Omegle.',
+    steps: ['Open Text Chat on Omechat.', 'Tap Start and wait a moment for a stranger.', 'Type your message. Tap Skip, then Really, to move on.'],
+    points: [
+      { title: 'No camera needed', text: 'Text chat uses no camera and no microphone.' },
+      { title: 'Typing indicator', text: 'You can see when the stranger is writing a reply.' },
+      { title: 'Themes', text: 'Choose a Black, White or picture theme for your own screen.' },
+    ],
+    faq: [
+      { q: 'Is there an Omegle text chat alternative with no signup?', a: 'Yes. Omechat text chat works without signup. Continue anonymously and tap Start.' },
+      { q: 'Can I chat in Hindi?', a: 'Yes, in English, Hindi or Hinglish.' },
+      { q: 'What if the stranger leaves?', a: 'You see a short message and can press Start for a new chat.' },
+    ],
+  },
+  {
+    slug: 'anonymous-chat',
+    title: 'Anonymous Chat Online: Free, No Login | Omechat',
+    description: 'Free anonymous chat online. Talk to a random stranger with text or video on Omechat without login or registration. 18+ only, Skip and Report included.',
+    h1: 'Anonymous chat online, no login needed',
+    intro: 'Anonymous chat lets you talk without showing who you are. On Omechat you can start a random text chat without an account, a name or an email address.',
+    steps: ['Open Omechat and choose Text Chat.', 'Continue anonymously.', 'Tap Start and chat. Tap Skip to leave at any time.'],
+    points: [
+      { title: 'No account for text chat', text: 'Start straight away. Signing in with Google is optional.' },
+      { title: 'Keep it private', text: 'Do not share your phone number, address, passwords or private photos.' },
+      { title: 'Be respectful', text: 'Everyone must follow the guidelines, and rule breakers can be reported.' },
+    ],
+    faq: [
+      { q: 'Is Omechat really anonymous?', a: 'You do not need to give a name to use text chat. Other people only see what you choose to type or show, but no website can promise perfect anonymity, so stay careful.' },
+      { q: 'Do I need to log in?', a: 'No. Login is optional.' },
+      { q: 'Can I chat without registration?', a: 'Yes. Text chat works without registration.' },
+    ],
+  },
+  {
+    slug: 'meet-new-people-online',
+    title: 'Meet New People Online: Free Random Chat | Omechat',
+    description: 'Meet new people online with free random text and video chat on Omechat. Make new friends, no signup for text chat, Same Country filter, 18+ only.',
+    h1: 'Meet new people online and make new friends',
+    intro: 'Meeting new people online can start with one hello. Omechat matches you with a random person for text or video chat, and users who sign in with Google can send a friend request after a good conversation.',
+    steps: ['Open Omechat and pick Text Chat or Video Chat.', 'Tap Start and say hello.', 'Enjoyed the chat? Sign in with Google to send a friend request.'],
+    points: [
+      { title: 'Easy start', text: 'No app and no signup for text chat. Open the site and tap Start.' },
+      { title: 'Same Country', text: 'Turn it on to meet people from your own country, for example India.' },
+      { title: 'Friend requests', text: 'Signed-in users can send each other friend requests.' },
+    ],
+    faq: [
+      { q: 'How can I meet new people on Omechat?', a: 'Tap Start in text chat or video chat and you are matched with a random person. Tap Skip to meet someone else.' },
+      { q: 'Can I add someone as a friend?', a: 'Yes, if both of you are signed in with Google you can send a friend request.' },
+      { q: 'Is Omechat only for adults?', a: 'Yes. You must be 18 or older.' },
     ],
   },
 ]
